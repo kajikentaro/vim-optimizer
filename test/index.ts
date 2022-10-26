@@ -14,12 +14,13 @@ import * as Mocha from 'mocha';
 import * as path from 'path';
 
 import { Globals } from '../src/globals';
+import { preprocess } from './preprocess';
 import { Configuration } from './testConfiguration';
 
 Globals.isTesting = true;
 Globals.mockConfiguration = new Configuration();
 
-export function run(): Promise<void> {
+export async function run(): Promise<void> {
   console.log('hoge');
   const mochaGrep = new RegExp(process.env.MOCHA_GREP || '');
 
@@ -32,6 +33,8 @@ export function run(): Promise<void> {
   });
 
   const testsRoot = path.resolve(__dirname, '.');
+
+  await preprocess();
 
   return new Promise((c, e) => {
     glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {

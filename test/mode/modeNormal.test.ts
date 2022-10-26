@@ -1,8 +1,9 @@
+import assert = require('assert');
 import { getAndUpdateModeHandler } from '../../extension';
 import { ModeHandler } from '../../src/mode/modeHandler';
-import { newCompare } from '../sameResultTest';
+import { result1, result2 } from '../preprocess';
 import { Configuration } from '../testConfiguration';
-import { cleanUpWorkspace, setupWorkspace } from './../testUtils';
+import { setupWorkspace } from './../testUtils';
 
 suite('Mode Normal', () => {
   let modeHandler: ModeHandler;
@@ -16,26 +17,25 @@ suite('Mode Normal', () => {
     modeHandler = (await getAndUpdateModeHandler())!;
   });
 
-  teardown(cleanUpWorkspace);
+  const log = async (text: string) => {
+    const fs = require('fs').promises;
+    await fs.appendFile('C:\\Users\\aaa\\Downloads\\hoge-log.txt', text);
+  };
 
-  newCompare({
-    title: '成功する(dw, dw)',
-    start: ['one |two three'],
-    keysPressedA: 'dw',
-    keysPressedB: 'dw',
-  });
+  for (const resultA of result1) {
+    for (const resultB of result2) {
+      test('hoge', async () => {
+        assert.strictEqual(resultA.text, resultB.text, '文字の結果が一致しません');
 
-  newCompare({
-    title: '失敗する(dw, de)',
-    start: ['one |two three'],
-    keysPressedA: 'dw',
-    keysPressedB: 'de',
-  });
+        // カーソルのポジションチェック
+        assert.deepStrictEqual(
+          { line: resultA.position.line, character: resultA.position.character },
+          { line: resultB.position.line, character: resultB.position.character },
+          'カーソルの場所が一致しません'
+        );
 
-  newCompare({
-    title: '成功する(dw, dW)',
-    start: ['one |two three'],
-    keysPressedA: 'dw',
-    keysPressedB: 'dW',
-  });
+        assert.strictEqual(resultA.mode, resultB.mode, 'モードが一致しません');
+      });
+    }
+  }
 });

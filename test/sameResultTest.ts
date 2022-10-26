@@ -354,9 +354,13 @@ async function clearAndSetupEditor() {
   await setupWorkspace(configuration);
 }
 
-async function executeTestA(
-  testObj: SameReulstTestObjectA
-): Promise<[string, vscode.Position, string]> {
+export interface executeResult {
+  text: string;
+  position: Position;
+  mode: string;
+}
+
+export async function executeTestA(testObj: SameReulstTestObjectA): Promise<executeResult> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, 'Expected an active editor');
 
@@ -406,7 +410,7 @@ async function executeTestA(
   const actualPosition = modeHandler.vimState.editor.selection.start;
 
   const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
-  return [resultTextA || '', actualPosition, actualModeA];
+  return { text: resultTextA || '', position: actualPosition, mode: actualModeA };
 }
 
 async function testIt(testObj: SameReulstTestObject) {

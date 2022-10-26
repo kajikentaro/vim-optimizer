@@ -355,6 +355,7 @@ async function clearAndSetupEditor() {
 }
 
 export interface executeResult {
+  keys: string;
   text: string;
   position: Position;
   mode: string;
@@ -410,7 +411,12 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<exec
   const actualPosition = modeHandler.vimState.editor.selection.start;
 
   const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
-  return { text: resultTextA || '', position: actualPosition, mode: actualModeA };
+  return {
+    keys: testObj.keysPressed,
+    text: resultTextA || '',
+    position: actualPosition,
+    mode: actualModeA,
+  };
 }
 
 async function testIt(testObj: SameReulstTestObject) {

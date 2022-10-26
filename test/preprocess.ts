@@ -64,7 +64,7 @@ export async function preprocess() {
         keysPressed,
       });
       if (res.text !== 'one two three') {
-        result2.push;
+        result2.push(res);
       }
     }
   }
@@ -81,7 +81,7 @@ export async function preprocess() {
       keysPressed,
     });
     if (res.text !== 'one two three') {
-      result1.push;
+      result1.push(res);
     }
   }
 

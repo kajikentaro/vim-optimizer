@@ -182,11 +182,11 @@ class TestObjectHelper {
     return ret;
   }
 
-  //public asVimOutputText(): string[] {
-  //const ret = this.testObject.end.slice(0);
-  //ret[this.endPosition.line] = ret[this.endPosition.line].replace('|', '');
-  //return ret;
-  //}
+  // public asVimOutputText(): string[] {
+  // const ret = this.testObject.end.slice(0);
+  // ret[this.endPosition.line] = ret[this.endPosition.line].replace('|', '');
+  // return ret;
+  // }
 }
 
 class TestWithRemapsObjectHelper {

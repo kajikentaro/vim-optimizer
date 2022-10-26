@@ -1,34 +1,34 @@
 import * as vscode from 'vscode';
 
-import { ChangeOperator, DeleteOperator, YankOperator } from './operator';
-import { CursorMoveByUnit, CursorMovePosition, TextEditor } from './../textEditor';
-import { isVisualMode, Mode } from './../mode/mode';
-import { PairMatcher } from './../common/matching/matcher';
-import { QuoteMatcher } from './../common/matching/quoteMatcher';
-import { RegisterAction } from './base';
-import { RegisterMode } from './../register/register';
-import { TagMatcher } from './../common/matching/tagMatcher';
-import { VimState } from './../state/vimState';
-import { configuration } from './../configuration/configuration';
-import { shouldWrapKey } from './wrapping';
-import { VimError, ErrorCode } from '../error';
-import { BaseMovement, SelectionType, IMovement, isIMovement, failedMovement } from './baseMotion';
-import { globalState } from '../state/globalState';
-import { reportSearch } from '../util/statusBarTextUtils';
-import { SneakForward, SneakBackward } from './plugins/sneak';
-import { Notation } from '../configuration/notation';
-import { StatusBar } from '../statusBar';
-import { clamp, isHighSurrogate, isLowSurrogate } from '../util/util';
-import { getCurrentParagraphBeginning, getCurrentParagraphEnd } from '../textobject/paragraph';
-import { PythonDocument } from './languages/python/motion';
 import { Position } from 'vscode';
 import { sorted } from '../common/motion/position';
+import { Notation } from '../configuration/notation';
+import { ErrorCode, VimError } from '../error';
+import { ModeDataFor } from '../mode/modeData';
+import { globalState } from '../state/globalState';
+import { StatusBar } from '../statusBar';
+import { getCurrentParagraphBeginning, getCurrentParagraphEnd } from '../textobject/paragraph';
 import { WordType } from '../textobject/word';
-import { CommandInsertAtCursor } from './commands/actions';
+import { reportSearch } from '../util/statusBarTextUtils';
+import { clamp, isHighSurrogate, isLowSurrogate } from '../util/util';
 import { SearchDirection } from '../vimscript/pattern';
+import { PairMatcher } from './../common/matching/matcher';
+import { QuoteMatcher } from './../common/matching/quoteMatcher';
+import { TagMatcher } from './../common/matching/tagMatcher';
+import { configuration } from './../configuration/configuration';
+import { isVisualMode, Mode } from './../mode/mode';
+import { RegisterMode } from './../register/register';
+import { VimState } from './../state/vimState';
+import { CursorMoveByUnit, CursorMovePosition, TextEditor } from './../textEditor';
+import { RegisterAction } from './base';
+import { BaseMovement, failedMovement, IMovement, isIMovement, SelectionType } from './baseMotion';
+import { CommandInsertAtCursor } from './commands/actions';
+import { PythonDocument } from './languages/python/motion';
+import { ChangeOperator, DeleteOperator, YankOperator } from './operator';
+import { SneakBackward, SneakForward } from './plugins/sneak';
 import { SmartQuoteMatcher, WhichQuotes } from './plugins/targets/smartQuotesMatcher';
 import { useSmartQuotes } from './plugins/targets/targetsConfig';
-import { ModeDataFor } from '../mode/modeData';
+import { shouldWrapKey } from './wrapping';
 
 /**
  * A movement is something like 'h', 'k', 'w', 'b', 'gg', etc.

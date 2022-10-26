@@ -9,9 +9,9 @@
 // host can call to run the tests. The test runner is expected to use console.log
 // to report the results back to the caller. When the tests are finished, return
 // a possible error to the callback or null if none.
-import * as path from 'path';
-import * as Mocha from 'mocha';
 import * as glob from 'glob';
+import * as Mocha from 'mocha';
+import * as path from 'path';
 
 import { Globals } from '../src/globals';
 import { Configuration } from './testConfiguration';
@@ -20,6 +20,7 @@ Globals.isTesting = true;
 Globals.mockConfiguration = new Configuration();
 
 export function run(): Promise<void> {
+  console.log('hoge');
   const mochaGrep = new RegExp(process.env.MOCHA_GREP || '');
 
   // Create the mocha test

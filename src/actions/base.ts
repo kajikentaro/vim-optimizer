@@ -1,11 +1,11 @@
 import { Position } from 'vscode';
 import { Cursor } from '../common/motion/cursor';
 import { Notation } from '../configuration/notation';
-import { ActionType, IBaseAction } from "./types";
 import { isTextTransformation } from '../transformations/transformations';
 import { configuration } from './../configuration/configuration';
 import { Mode } from './../mode/mode';
 import { VimState } from './../state/vimState';
+import { ActionType, IBaseAction } from './types';
 
 export abstract class BaseAction implements IBaseAction {
   abstract readonly actionType: ActionType;
@@ -55,7 +55,8 @@ export abstract class BaseAction implements IBaseAction {
    */
   public doesActionApply(vimState: VimState, keysPressed: string[]): boolean {
     if (
-      vimState.currentModeIncludingPseudoModes === Mode.OperatorPendingMode && this.actionType === 'command'
+      vimState.currentModeIncludingPseudoModes === Mode.OperatorPendingMode &&
+      this.actionType === 'command'
     ) {
       return false;
     }
@@ -71,7 +72,8 @@ export abstract class BaseAction implements IBaseAction {
    */
   public couldActionApply(vimState: VimState, keysPressed: string[]): boolean {
     if (
-      vimState.currentModeIncludingPseudoModes === Mode.OperatorPendingMode && this.actionType === 'command'
+      vimState.currentModeIncludingPseudoModes === Mode.OperatorPendingMode &&
+      this.actionType === 'command'
     ) {
       return false;
     }
@@ -237,7 +239,7 @@ export enum KeypressState {
 /**
  * Every Vim action will be added here with the @RegisterAction decorator.
  */
-const actionMap = new Map<Mode, Array<new () => BaseAction>>();
+export const actionMap = new Map<Mode, Array<new () => BaseAction>>();
 
 /**
  * Gets the action that should be triggered given a key sequence.
@@ -287,4 +289,14 @@ export function RegisterAction(action: new () => BaseAction): void {
 
     actions.push(action);
   }
+}
+
+export function getAllActions() {
+  const allActions = [];
+  for (const [_, actions] of actionMap) {
+    for (const action of actions) {
+      allActions.push(new action());
+    }
+  }
+  return allActions;
 }

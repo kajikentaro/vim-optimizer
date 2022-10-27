@@ -1,10 +1,10 @@
 import { getAllActions } from '../src/actions/base';
-import { executeResult, executeTestA } from './sameResultTest';
+import { ExecuteResult, executeTestA } from './sameResultTest';
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
-export const result2: executeResult[] = [];
-export const result1: executeResult[] = [];
+export const result2: ExecuteResult[] = [];
+export const result1: ExecuteResult[] = [];
 
 function getAllActionKeys() {
   const allActions = getAllActions();
@@ -47,17 +47,16 @@ export async function preprocess() {
   const allActionKeys = getAllActionKeys();
   console.log('preprocessing of two actions');
   let startTimeMs = new Date().getTime();
-  for (let i = 0; i < allActionKeys.length; i++) {
+  for (const actionKeyA of allActionKeys) {
     for (let j = 0; j < allActionKeys.length; j++) {
       if (j % 50 === 0) {
         const middleTimeMs = new Date().getTime();
         console.log('ms per an action', (middleTimeMs - startTimeMs) / 50);
         startTimeMs = middleTimeMs;
       }
-
       await cleanUpWorkspace();
       await setupWorkspace(configuration);
-      const keysPressed = allActionKeys[i].join('') + allActionKeys[j].join('');
+      const keysPressed = actionKeyA.join('') + allActionKeys[j].join('');
       const res = await executeTestA({
         title: keysPressed,
         start: ['one |two three'],
@@ -71,10 +70,10 @@ export async function preprocess() {
 
   // 前処理(キー1つ)
   console.log('preprocessing of an actions');
-  for (let i = 0; i < allActionKeys.length; i++) {
+  for (const actionKey of allActionKeys) {
     await cleanUpWorkspace();
     await setupWorkspace(configuration);
-    const keysPressed = allActionKeys[i].join('');
+    const keysPressed = actionKey.join('');
     const res = await executeTestA({
       title: keysPressed,
       start: ['one |two three'],

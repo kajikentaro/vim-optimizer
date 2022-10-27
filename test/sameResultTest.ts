@@ -354,14 +354,14 @@ async function clearAndSetupEditor() {
   await setupWorkspace(configuration);
 }
 
-export interface executeResult {
+export interface ExecuteResult {
   keys: string;
   text: string;
   position: Position;
   mode: string;
 }
 
-export async function executeTestA(testObj: SameReulstTestObjectA): Promise<executeResult> {
+export async function executeTestA(testObj: SameReulstTestObjectA): Promise<ExecuteResult> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, 'Expected an active editor');
 

@@ -24,7 +24,7 @@ suite('Mode Normal', () => {
 
   for (const resultA of result1) {
     for (const resultB of result2) {
-      test('hoge', async () => {
+      test(resultA.keys + ' vs ' + resultB.keys, async () => {
         assert.strictEqual(resultA.text, resultB.text, '文字の結果が一致しません');
 
         // カーソルのポジションチェック

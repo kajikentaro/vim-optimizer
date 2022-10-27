@@ -47,8 +47,8 @@ export async function preprocess() {
   const allActionKeys = getAllActionKeys();
   console.log('preprocessing of two actions');
   let startTimeMs = new Date().getTime();
-  for (const actionKeyA of allActionKeys) {
-    for (let j = 0; j < allActionKeys.length; j++) {
+  for (const actionKeyA of allActionKeys.splice(0, 3)) {
+    for (let j = 0; j < 3; j++) {
       if (j % 50 === 0) {
         const middleTimeMs = new Date().getTime();
         console.log('ms per an action', (middleTimeMs - startTimeMs) / 50);
@@ -70,7 +70,7 @@ export async function preprocess() {
 
   // 前処理(キー1つ)
   console.log('preprocessing of an actions');
-  for (const actionKey of allActionKeys) {
+  for (const actionKey of allActionKeys.splice(0, 3)) {
     await cleanUpWorkspace();
     await setupWorkspace(configuration);
     const keysPressed = actionKey.join('');

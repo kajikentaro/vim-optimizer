@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
+import { Range } from 'vscode';
 
 import { Position } from 'vscode';
 import { IConfiguration } from '../src/configuration/iconfiguration';
@@ -183,7 +184,10 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
 
   // Initialize the editor with the starting text and cursor selection
   await editor.edit((builder) => {
-    builder.insert(new Position(0, 0), testObj.start.join('\n').replace('|', ''));
+    builder.replace(
+      new Range(new Position(0, 0), new Position(1e5, 0)),
+      testObj.start.join('\n').replace('|', '')
+    );
   });
   await editor.document.save();
   editor.selections = [new vscode.Selection(helper.startPosition, helper.startPosition)];

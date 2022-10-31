@@ -47,23 +47,38 @@ export async function preprocess() {
   const allActionKeys = getAllActionKeys();
   console.log('preprocessing of two actions');
   let startTimeMs = new Date().getTime();
-  for (const actionKeyA of allActionKeys.splice(0, 3)) {
-    for (let j = 0; j < 3; j++) {
+  await setupWorkspace(configuration);
+  logReset();
+  for (const actionKeyA of allActionKeys.splice(0, 100)) {
+    for (let j = 0; j < 100; j++) {
       if (j % 50 === 0) {
         const middleTimeMs = new Date().getTime();
         console.log('ms per an action', (middleTimeMs - startTimeMs) / 50);
         startTimeMs = middleTimeMs;
       }
-      await cleanUpWorkspace();
-      await setupWorkspace(configuration);
       const keysPressed = actionKeyA.join('') + allActionKeys[j].join('');
-      const res = await executeTestA({
-        title: keysPressed,
-        start: ['one |two three'],
-        keysPressed,
-      });
-      if (res.text !== 'one two three') {
-        result2.push(res);
+      try {
+        const res = await executeTestA({
+          title: keysPressed,
+          start: ['one |two three'],
+          keysPressed,
+        });
+        if (res.text !== 'one two three') {
+          result2.push(res);
+        }
+      } catch (e) {
+        console.error(e);
+        await cleanUpWorkspace();
+        await setupWorkspace();
+
+        const res = await executeTestA({
+          title: keysPressed,
+          start: ['one |two three'],
+          keysPressed,
+        });
+        if (res.text !== 'one two three') {
+          result2.push(res);
+        }
       }
     }
   }
@@ -87,6 +102,11 @@ export async function preprocess() {
   console.log('done preprocessing');
   log(JSON.stringify(result1));
   log(JSON.stringify(result2));
+}
+
+export async function logReset() {
+  const fs = require('fs').promises;
+  await fs.writeFile('C:\\Users\\aaa\\Downloads\\hoge-log.txt', '');
 }
 export async function log(text: string) {
   const fs = require('fs').promises;

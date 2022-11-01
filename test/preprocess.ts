@@ -1,10 +1,11 @@
 import { BaseAction, getAllActions } from '../src/actions/base';
-import { ExecuteResult, executeTestA } from './sameResultTest';
+import { MoveWordBegin } from '../src/actions/motion';
+import { DeleteOperator } from '../src/actions/operator';
+import { ExecuteResult, executeTestA, NotCompatibleError } from './sameResultTest';
 import { Configuration } from './testConfiguration';
-import { cleanUpWorkspace, setupWorkspace } from './testUtils';
+import { setupWorkspace } from './testUtils';
 
-export const result2: ExecuteResult[] = [];
-export const result1: ExecuteResult[] = [];
+const result1: ExecuteResult[] = [];
 
 function getFilterdAllActions() {
   const allActions = getAllActions();
@@ -49,62 +50,28 @@ export async function preprocess() {
   let startTimeMs = new Date().getTime();
   await setupWorkspace(configuration);
   logReset();
-  for (const actionA of allActions.splice(0, 100)) {
-    for (let j = 0; j < 100; j++) {
-      if (j % 50 === 0) {
-        const middleTimeMs = new Date().getTime();
-        console.log('ms per an action', (middleTimeMs - startTimeMs) / 50);
-        startTimeMs = middleTimeMs;
-      }
-      try {
-        await cleanUpWorkspace();
-        await setupWorkspace();
 
-        const res = await executeTestA({
-          title: actionA.keys.toString(),
-          start: ['one |two three'],
-          actions: [actionA, allActions[j]],
-        });
-        if (res.text !== 'one two three') {
-          result2.push(res);
-        }
-      } catch (e) {
-        console.error('error');
-      }
+  try {
+    const res = await executeTestA({
+      title: 'ほげ',
+      start: ['one |two three'],
+      actions: [new DeleteOperator(), new MoveWordBegin()],
+    });
+    if (res.text !== 'one two three') {
+      result1.push(res);
     }
-  }
-
-  // 前処理(キー1つ)
-  console.log('preprocessing of an actions');
-  for (const actionA of allActions.splice(0, 100)) {
-    try {
-      const res = await executeTestA({
-        title: actionA.keys.toString(),
-        start: ['one |two three'],
-        actions: [actionA],
-      });
-      if (res.text !== 'one two three') {
-        result2.push(res);
-      }
-    } catch (e) {
-      console.error(e);
-      await cleanUpWorkspace();
-      await setupWorkspace();
-
-      const res = await executeTestA({
-        title: actionA.keys.toString(),
-        start: ['one |two three'],
-        actions: [actionA],
-      });
-      if (res.text !== 'one two three') {
-        result2.push(res);
-      }
+  } catch (e) {
+    if (e instanceof NotCompatibleError) {
+      console.error('not compatible: stop');
+    } else {
+      // await cleanUpWorkspace();
+      // await setupWorkspace();
+      throw new Error('違うエラー');
     }
   }
 
   console.log('done preprocessing');
   log(JSON.stringify(result1));
-  log(JSON.stringify(result2));
 }
 
 export async function logReset() {

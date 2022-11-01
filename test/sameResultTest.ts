@@ -1,7 +1,7 @@
 import * as assert from 'assert';
-import { BaseAction, KeypressState } from 'src/actions/base';
 import * as vscode from 'vscode';
 import { Range } from 'vscode';
+import { BaseAction, KeypressState } from '../src/actions/base';
 
 import { Position } from 'vscode';
 import { IConfiguration } from '../src/configuration/iconfiguration';
@@ -141,6 +141,8 @@ export interface ExecuteResult {
   mode: string;
 }
 
+export class NotCompatibleError extends Error {}
+
 export async function executeTestA(testObj: SameReulstTestObjectA): Promise<ExecuteResult> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, 'Expected an active editor');
@@ -171,9 +173,38 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
 
   Register.clearAllRegisters();
 
+  let i = 0;
   for (const action of testObj.actions) {
-    console.log('hoge', action.toString());
-    await modeHandler.myHandleKeyAsAnAction(action);
+    if (!(action instanceof BaseAction)) {
+      continue;
+    }
+    if (i == 0) {
+      i++;
+      if (action.doesActionApply(modeHandler.vimState, ['d'])) {
+        modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
+        await modeHandler.myHandleKeyAsAnAction(action);
+        continue;
+      }
+      if (
+        action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
+      ) {
+        continue;
+      }
+      throw new NotCompatibleError();
+    }
+    if (i == 1) {
+      if (action.doesActionApply(modeHandler.vimState, ['w'])) {
+        modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
+        await modeHandler.myHandleKeyAsAnAction(action);
+        continue;
+      }
+      if (
+        action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
+      ) {
+        continue;
+      }
+      throw new NotCompatibleError();
+    }
   }
 
   // Check given end output is correct

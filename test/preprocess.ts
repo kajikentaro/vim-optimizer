@@ -1,4 +1,4 @@
-import { getAllActions } from '../src/actions/base';
+import { BaseAction, getAllActions } from '../src/actions/base';
 import { ExecuteResult, executeTestA } from './sameResultTest';
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
@@ -6,10 +6,10 @@ import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 export const result2: ExecuteResult[] = [];
 export const result1: ExecuteResult[] = [];
 
-function getAllActionKeys() {
+function getFilterdAllActions() {
   const allActions = getAllActions();
 
-  const simpleActions: string[][] = [];
+  const simpleActions: BaseAction[] = [];
   for (const action of allActions) {
     // 2Dと3Dの物があるので、3Dに統一する
     let checkingKeys: string[][];
@@ -31,7 +31,7 @@ function getAllActionKeys() {
       }
       if (isOk) {
         // どれか一つが単純だった場合に追加して終了
-        simpleActions.push(keys);
+        simpleActions.push(action);
         break;
       }
     }
@@ -44,58 +44,61 @@ export async function preprocess() {
   configuration.expandtab = false;
 
   // 前処理(キー2つ)
-  const allActionKeys = getAllActionKeys();
+  const allActions = getFilterdAllActions();
   console.log('preprocessing of two actions');
   let startTimeMs = new Date().getTime();
   await setupWorkspace(configuration);
   logReset();
-  for (const actionKeyA of allActionKeys.splice(0, 100)) {
+  for (const actionA of allActions.splice(0, 100)) {
     for (let j = 0; j < 100; j++) {
       if (j % 50 === 0) {
         const middleTimeMs = new Date().getTime();
         console.log('ms per an action', (middleTimeMs - startTimeMs) / 50);
         startTimeMs = middleTimeMs;
       }
-      const keysPressed = actionKeyA.join('') + allActionKeys[j].join('');
       try {
+        await cleanUpWorkspace();
+        await setupWorkspace();
+
         const res = await executeTestA({
-          title: keysPressed,
+          title: actionA.keys.toString(),
           start: ['one |two three'],
-          keysPressed,
+          actions: [actionA, allActions[j]],
         });
         if (res.text !== 'one two three') {
           result2.push(res);
         }
       } catch (e) {
-        console.error(e);
-        await cleanUpWorkspace();
-        await setupWorkspace();
-
-        const res = await executeTestA({
-          title: keysPressed,
-          start: ['one |two three'],
-          keysPressed,
-        });
-        if (res.text !== 'one two three') {
-          result2.push(res);
-        }
+        console.error('error');
       }
     }
   }
 
   // 前処理(キー1つ)
   console.log('preprocessing of an actions');
-  for (const actionKey of allActionKeys.splice(0, 3)) {
-    await cleanUpWorkspace();
-    await setupWorkspace(configuration);
-    const keysPressed = actionKey.join('');
-    const res = await executeTestA({
-      title: keysPressed,
-      start: ['one |two three'],
-      keysPressed,
-    });
-    if (res.text !== 'one two three') {
-      result1.push(res);
+  for (const actionA of allActions.splice(0, 100)) {
+    try {
+      const res = await executeTestA({
+        title: actionA.keys.toString(),
+        start: ['one |two three'],
+        actions: [actionA],
+      });
+      if (res.text !== 'one two three') {
+        result2.push(res);
+      }
+    } catch (e) {
+      console.error(e);
+      await cleanUpWorkspace();
+      await setupWorkspace();
+
+      const res = await executeTestA({
+        title: actionA.keys.toString(),
+        start: ['one |two three'],
+        actions: [actionA],
+      });
+      if (res.text !== 'one two three') {
+        result2.push(res);
+      }
     }
   }
 

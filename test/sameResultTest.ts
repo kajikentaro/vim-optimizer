@@ -1,48 +1,19 @@
 import * as assert from 'assert';
-import * as sinon from 'sinon';
+import { BaseAction, KeypressState } from 'src/actions/base';
 import * as vscode from 'vscode';
 import { Range } from 'vscode';
 
 import { Position } from 'vscode';
 import { IConfiguration } from '../src/configuration/iconfiguration';
-import { Globals } from '../src/globals';
 import { Mode } from '../src/mode/mode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { Register } from '../src/register/register';
 import { globalState } from '../src/state/globalState';
 import { Configuration } from './testConfiguration';
-import { cleanUpWorkspace, reloadConfiguration, setupWorkspace } from './testUtils';
+import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
 function getNiceStack(stack: string | undefined): string {
   return stack ? stack.split('\n').splice(2, 1).join('\n') : 'no stack available :(';
-}
-
-export function newCompare(testObj: SameReulstTestObject) {
-  const stack = getNiceStack(new Error().stack);
-
-  test(testObj.title, async () => {
-    const prevConfig = { ...Globals.mockConfiguration };
-    try {
-      if (testObj.config) {
-        for (const key in testObj.config) {
-          if (testObj.config.hasOwnProperty(key)) {
-            const value = testObj.config[key];
-            Globals.mockConfiguration[key] = value;
-          }
-        }
-        await reloadConfiguration();
-      }
-      await testIt(testObj);
-    } catch (reason) {
-      reason.stack = stack;
-      throw reason;
-    } finally {
-      if (testObj.config) {
-        Globals.mockConfiguration = prevConfig;
-        await reloadConfiguration();
-      }
-    }
-  });
 }
 
 interface SameReulstTestObject {
@@ -67,7 +38,7 @@ interface SameReulstTestObjectA {
   config?: Partial<IConfiguration>;
   editorOptions?: vscode.TextEditorOptions;
   start: string[];
-  keysPressed: string;
+  actions: BaseAction[] | KeypressState[];
   endMode?: Mode;
   statusBar?: string;
   jumps?: string[];
@@ -165,7 +136,6 @@ function tokenizeKeySequence(sequence: string): string[] {
 }
 
 export interface ExecuteResult {
-  keys: string;
   text: string;
   position: Position;
   mode: string;
@@ -196,25 +166,14 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
   ModeHandlerMap.clear();
   const [modeHandler, _] = await ModeHandlerMap.getOrCreate(editor);
 
-  let keysPressedA = testObj.keysPressed;
-  if (process.platform === 'win32') {
-    keysPressedA = keysPressedA.replace(/\\n/g, '\\r\\n');
-  }
-
   const jumpTracker = globalState.jumpTracker;
   jumpTracker.clearJumps();
 
   Register.clearAllRegisters();
 
-  if (testObj.stub) {
-    const confirmStub = sinon
-      .stub(testObj.stub.stubClass.prototype, testObj.stub.methodName)
-      .resolves(testObj.stub.returnValue);
-    await modeHandler.handleMultipleKeyEvents(tokenizeKeySequence(keysPressedA));
-    confirmStub.restore();
-  } else {
-    // Assumes key presses are single characters for now
-    await modeHandler.handleMultipleKeyEvents(tokenizeKeySequence(keysPressedA));
+  for (const action of testObj.actions) {
+    console.log('hoge', action.toString());
+    await modeHandler.myHandleKeyAsAnAction(action);
   }
 
   // Check given end output is correct
@@ -225,33 +184,10 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
 
   const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
   return {
-    keys: testObj.keysPressed,
     text: resultTextA || '',
     position: actualPosition,
     mode: actualModeA,
   };
-}
-
-async function testIt(testObj: SameReulstTestObject) {
-  const testObjA: SameReulstTestObjectA = { ...testObj, keysPressed: testObj.keysPressedA };
-  const resultA = await executeTestA(testObjA);
-
-  // リセットする
-  await clearAndSetupEditor();
-
-  const testObjB: SameReulstTestObjectA = { ...testObj, keysPressed: testObj.keysPressedB };
-  const resultB = await executeTestA(testObjB);
-
-  assert.strictEqual(resultA[0], resultB[0], '文字の結果が一致しません');
-
-  // カーソルのポジションチェック
-  assert.deepStrictEqual(
-    { line: resultA[1].line, character: resultA[1].character },
-    { line: resultB[1].line, character: resultB[1].character },
-    'カーソルの場所が一致しません'
-  );
-
-  assert.strictEqual(resultA[2], resultB[2], 'モードが一致しません');
 }
 
 async function clearAndSetupEditor() {

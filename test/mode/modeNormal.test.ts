@@ -1,7 +1,6 @@
 import assert = require('assert');
 import { getAndUpdateModeHandler } from '../../extension';
 import { ModeHandler } from '../../src/mode/modeHandler';
-import { result1, result2 } from '../preprocess';
 import { Configuration } from '../testConfiguration';
 import { setupWorkspace } from './../testUtils';
 
@@ -21,21 +20,4 @@ suite('Mode Normal', () => {
     const fs = require('fs').promises;
     await fs.appendFile('C:\\Users\\aaa\\Downloads\\hoge-log.txt', text);
   };
-
-  for (const resultA of result1) {
-    for (const resultB of result2) {
-      test(resultA.keys + ' vs ' + resultB.keys, async () => {
-        assert.strictEqual(resultA.text, resultB.text, '文字の結果が一致しません');
-
-        // カーソルのポジションチェック
-        assert.deepStrictEqual(
-          { line: resultA.position.line, character: resultA.position.character },
-          { line: resultB.position.line, character: resultB.position.character },
-          'カーソルの場所が一致しません'
-        );
-
-        assert.strictEqual(resultA.mode, resultB.mode, 'モードが一致しません');
-      });
-    }
-  }
 });

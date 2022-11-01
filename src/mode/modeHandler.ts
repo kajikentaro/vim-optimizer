@@ -1,7 +1,35 @@
 import * as vscode from 'vscode';
 
-import { BaseAction, KeypressState, BaseCommand, getRelevantAction } from './../actions/base';
+import * as process from 'process';
+import { Position, Uri } from 'vscode';
 import { BaseMovement } from '../actions/baseMotion';
+import { BaseOperator } from '../actions/operator';
+import { EasyMotion } from '../actions/plugins/easymotion/easymotion';
+import { SearchByNCharCommand } from '../actions/plugins/easymotion/easymotion.cmd';
+import { IBaseAction } from '../actions/types';
+import { Cursor } from '../common/motion/cursor';
+import { configuration } from '../configuration/configuration';
+import { decoration } from '../configuration/decoration';
+import { Notation } from '../configuration/notation';
+import { Remappers } from '../configuration/remapper';
+import { Jump } from '../jumps/jump';
+import { globalState } from '../state/globalState';
+import { RemapState } from '../state/remapState';
+import { StatusBar } from '../statusBar';
+import { executeTransformations, IModeHandler } from '../transformations/execute';
+import { isTextTransformation } from '../transformations/transformations';
+import { getDecorationsForSearchMatchRanges, SearchDecorations } from '../util/decorationUtils';
+import { Logger } from '../util/logger';
+import { SpecialKeys } from '../util/specialKeys';
+import { scrollView } from '../util/util';
+import { VSCodeContext } from '../util/vscodeContext';
+import { BaseAction, BaseCommand, getRelevantAction, KeypressState } from './../actions/base';
+import {
+  ActionOverrideCmdD,
+  CommandNumber,
+  CommandQuitRecordMacro,
+  DocumentContentChangeAction,
+} from './../actions/commands/actions';
 import {
   CommandBackspaceInInsertMode,
   CommandEscInsertMode,
@@ -10,42 +38,14 @@ import {
   InsertCharAbove,
   InsertCharBelow,
 } from './../actions/commands/insert';
-import { Jump } from '../jumps/jump';
-import { Logger } from '../util/logger';
-import { Mode, VSCodeVimCursorType, isVisualMode, getCursorStyle, isStatusBarMode } from './mode';
 import { PairMatcher } from './../common/matching/matcher';
 import { laterOf } from './../common/motion/position';
-import { Cursor } from '../common/motion/cursor';
-import { RecordedState } from './../state/recordedState';
-import { IBaseAction } from '../actions/types';
+import { ForceStopRemappingError, VimError } from './../error';
 import { Register, RegisterMode } from './../register/register';
-import { Remappers } from '../configuration/remapper';
-import { StatusBar } from '../statusBar';
-import { TextEditor } from './../textEditor';
-import { VimError, ForceStopRemappingError } from './../error';
+import { RecordedState } from './../state/recordedState';
 import { VimState } from './../state/vimState';
-import { VSCodeContext } from '../util/vscodeContext';
-import { configuration } from '../configuration/configuration';
-import { decoration } from '../configuration/decoration';
-import { scrollView } from '../util/util';
-import {
-  CommandQuitRecordMacro,
-  DocumentContentChangeAction,
-  ActionOverrideCmdD,
-  CommandNumber,
-} from './../actions/commands/actions';
-import { isTextTransformation } from '../transformations/transformations';
-import { executeTransformations, IModeHandler } from '../transformations/execute';
-import { globalState } from '../state/globalState';
-import { Notation } from '../configuration/notation';
-import { SpecialKeys } from '../util/specialKeys';
-import { SearchDecorations, getDecorationsForSearchMatchRanges } from '../util/decorationUtils';
-import { BaseOperator } from '../actions/operator';
-import { SearchByNCharCommand } from '../actions/plugins/easymotion/easymotion.cmd';
-import { Position, Uri } from 'vscode';
-import { RemapState } from '../state/remapState';
-import * as process from 'process';
-import { EasyMotion } from '../actions/plugins/easymotion/easymotion';
+import { TextEditor } from './../textEditor';
+import { getCursorStyle, isStatusBarMode, isVisualMode, Mode, VSCodeVimCursorType } from './mode';
 
 interface IModeHandlerMap {
   get(editorId: Uri): ModeHandler | undefined;
@@ -63,9 +63,7 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
 
   public focusChanged = false;
 
-  private searchDecorationCacheKey:
-    | { searchString: string; documentVersion: number }
-    | undefined;
+  private searchDecorationCacheKey: { searchString: string; documentVersion: number } | undefined;
 
   private readonly disposables: vscode.Disposable[] = [];
   private readonly handlerMap: IModeHandlerMap;
@@ -587,6 +585,116 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
         await this.updateView({ drawSelection: false, revealRange: false });
       }
     }
+  }
+
+  public async myHandleKeyAsAnAction(action: BaseAction | KeypressState): Promise<boolean> {
+    const recordedState = this.vimState.recordedState;
+    // recordedState.actionKeys.push(key);
+
+    switch (action) {
+      case KeypressState.NoPossibleMatch:
+        if (this.vimState.currentMode === Mode.Insert) {
+          this.vimState.recordedState.actionKeys = [];
+        } else {
+          this.vimState.recordedState = new RecordedState();
+        }
+        // Since there is no possible action we are no longer waiting any action keys
+        this.vimState.recordedState.waitingForAnotherActionKey = false;
+
+        return false;
+      case KeypressState.WaitingOnKeys:
+        this.vimState.recordedState.waitingForAnotherActionKey = true;
+
+        return false;
+    }
+
+    if (
+      !this.remapState.remapUsedACharacter &&
+      this.remapState.isCurrentlyPerformingRecursiveRemapping
+    ) {
+      // Used a character inside a recursive remapping so we reset the mapDepth.
+      this.remapState.remapUsedACharacter = true;
+      this.remapState.mapDepth = 0;
+    }
+
+    // Since we got an action we are no longer waiting any action keys
+    this.vimState.recordedState.waitingForAnotherActionKey = false;
+
+    // Store action pressed keys for showCmd
+    recordedState.actionsRunPressedKeys.push(...recordedState.actionKeys);
+
+    let actionToRecord: BaseAction | undefined = action;
+    if (recordedState.actionsRun.length === 0) {
+      recordedState.actionsRun.push(action);
+    } else {
+      const lastAction = recordedState.actionsRun[recordedState.actionsRun.length - 1];
+
+      const actionCanBeMergedWithDocumentChange =
+        action instanceof CommandInsertInInsertMode ||
+        action instanceof CommandBackspaceInInsertMode ||
+        action instanceof CommandInsertPreviousText ||
+        action instanceof InsertCharAbove ||
+        action instanceof InsertCharBelow;
+
+      if (lastAction instanceof DocumentContentChangeAction) {
+        if (!(action instanceof CommandEscInsertMode)) {
+          // TODO: this includes things like <BS>, which it shouldn't
+          // lastAction.keysPressed.push(key);
+        }
+
+        if (actionCanBeMergedWithDocumentChange) {
+          // delay the macro recording
+          actionToRecord = undefined;
+        } else {
+          // Push document content change to the stack
+          lastAction.addChanges(
+            this.vimState.historyTracker.currentContentChanges,
+            this.vimState.cursorStopPosition
+          );
+          this.vimState.historyTracker.currentContentChanges = [];
+          recordedState.actionsRun.push(action);
+        }
+      } else {
+        if (actionCanBeMergedWithDocumentChange) {
+          // This means we are already in Insert Mode but there is still not DocumentContentChangeAction in stack
+          this.vimState.historyTracker.currentContentChanges = [];
+          const newContentChange = new DocumentContentChangeAction(
+            this.vimState.cursorStopPosition
+          );
+          // newContentChange.keysPressed.push(key);
+          recordedState.actionsRun.push(newContentChange);
+          actionToRecord = newContentChange;
+        } else {
+          recordedState.actionsRun.push(action);
+        }
+      }
+    }
+
+    if (
+      this.vimState.macro !== undefined &&
+      actionToRecord &&
+      !(actionToRecord instanceof CommandQuitRecordMacro)
+    ) {
+      this.vimState.macro.actionsRun.push(actionToRecord);
+    }
+
+    await this.runAction(recordedState, action);
+
+    if (this.vimState.currentMode === Mode.Insert) {
+      recordedState.isInsertion = true;
+    }
+
+    // Update view
+    await this.updateView();
+
+    if (action.isJump) {
+      globalState.jumpTracker.recordJump(
+        Jump.fromStateBefore(this.vimState),
+        Jump.fromStateNow(this.vimState)
+      );
+    }
+
+    return true;
   }
 
   private async handleKeyAsAnAction(key: string): Promise<boolean> {

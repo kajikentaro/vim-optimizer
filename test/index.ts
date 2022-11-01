@@ -21,7 +21,6 @@ Globals.isTesting = true;
 Globals.mockConfiguration = new Configuration();
 
 export async function run(): Promise<void> {
-  console.log('hoge');
   const mochaGrep = new RegExp(process.env.MOCHA_GREP || '');
 
   // Create the mocha test

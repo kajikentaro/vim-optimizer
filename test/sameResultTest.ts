@@ -39,6 +39,7 @@ interface SameReulstTestObjectA {
   editorOptions?: vscode.TextEditorOptions;
   start: string[];
   actions: BaseAction[] | KeypressState[];
+  actionKeys: string[][];
   endMode?: Mode;
   statusBar?: string;
   jumps?: string[];
@@ -142,10 +143,11 @@ export interface ExecuteResult {
 }
 
 export class NotCompatibleError extends Error {}
+export class EditorNotActiveError extends Error {}
 
 export async function executeTestA(testObj: SameReulstTestObjectA): Promise<ExecuteResult> {
   const editor = vscode.window.activeTextEditor;
-  assert(editor, 'Expected an active editor');
+  assert(editor, new EditorNotActiveError('Expected an active editor'));
 
   const helper = new TestObjectHelper(testObj);
   assert(helper.isValid, "Missing '|' in test object.");
@@ -173,38 +175,23 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
 
   Register.clearAllRegisters();
 
-  let i = 0;
-  for (const action of testObj.actions) {
+  for (let i = 0; i < testObj.actions.length; i++) {
+    const action = testObj.actions[i];
+    const actionKey = testObj.actionKeys[i];
     if (!(action instanceof BaseAction)) {
       continue;
     }
-    if (i == 0) {
-      i++;
-      if (action.doesActionApply(modeHandler.vimState, ['d'])) {
-        modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
-        await modeHandler.myHandleKeyAsAnAction(action);
-        continue;
-      }
-      if (
-        action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
-      ) {
-        continue;
-      }
-      throw new NotCompatibleError();
+    if (action.doesActionApply(modeHandler.vimState, actionKey)) {
+      modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
+      await modeHandler.myHandleKeyAsAnAction(action);
+      continue;
     }
-    if (i == 1) {
-      if (action.doesActionApply(modeHandler.vimState, ['w'])) {
-        modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
-        await modeHandler.myHandleKeyAsAnAction(action);
-        continue;
-      }
-      if (
-        action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
-      ) {
-        continue;
-      }
-      throw new NotCompatibleError();
+    if (
+      action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
+    ) {
+      continue;
     }
+    throw new NotCompatibleError();
   }
 
   // Check given end output is correct

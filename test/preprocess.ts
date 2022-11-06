@@ -65,9 +65,18 @@ export async function preprocess() {
           actions: [allActions[i], allActions[j]],
           actionKeys: [allActionKeys[i], allActionKeys[j]],
         });
-        if (res.text !== 'one two three') {
-          result1.push(res);
+
+        // 初期値と全く一緒の場合はスキップ
+        if (
+          res.text === 'one two three' &&
+          res.mode === 'NORMAL' &&
+          res.position.line === 0 &&
+          res.position.character === 4
+        ) {
+          console.log('skip ' + allActionKeys[i] + ',' + allActionKeys[j]);
+          continue;
         }
+        result1.push(res);
         console.log('done ' + allActionKeys[i] + ',' + allActionKeys[j]);
       } catch (e) {
         if (e instanceof EditorNotActiveError) {

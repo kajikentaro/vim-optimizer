@@ -44,6 +44,48 @@ function getFilterdAllActions(): [BaseAction[], string[][]] {
   }
   return [simpleActions, simpleActionKeys];
 }
+
+async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: string[][]) {
+  const result1: object[] = [];
+  for (let i = 0; i < allActions.length; i++) {
+    try {
+      const res = await executeTestA({
+        title: 'ほげ',
+        start: ['one |two three'],
+        actions: [allActions[i]],
+        actionKeys: [allActionKeys[i]],
+      });
+
+      // 初期値と全く一緒の場合はスキップ
+      if (
+        res.text === 'one two three' &&
+        res.mode === 'NORMAL' &&
+        res.position.line === 0 &&
+        res.position.character === 4
+      ) {
+        console.log('skip ' + allActionKeys[i]);
+        continue;
+      }
+      result1.push({ actionKeys: allActionKeys[i], ...res });
+      console.log('done ' + allActionKeys[i]);
+    } catch (e) {
+      if (e instanceof EditorNotActiveError) {
+        console.error('editor not active');
+        await cleanUpWorkspace();
+        await setupWorkspace();
+        i--;
+        continue;
+      } else if (e instanceof NotCompatibleError) {
+        console.error('not compatible ' + allActionKeys[i]);
+      } else {
+        console.error('違うエラー ' + allActionKeys[i]);
+        continue;
+      }
+    }
+  }
+  logB(JSON.stringify(result1));
+}
+
 export async function preprocess() {
   const configuration = new Configuration();
   configuration.tabstop = 4;
@@ -54,6 +96,8 @@ export async function preprocess() {
   console.log('preprocessing of two actions');
   await setupWorkspace(configuration);
   logReset();
+
+  await preprocessSingleAction(allActions, allActionKeys);
 
   for (let i = 0; i < allActions.length; i++) {
     const startTimeMs = new Date().getTime();

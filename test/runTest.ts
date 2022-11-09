@@ -18,6 +18,7 @@ async function main() {
       extensionTestsPath,
       // Disable other extensions while running tests for avoiding unexpected side-effect
       launchArgs: ['--disable-extensions'],
+      extensionTestsEnv: { START: '0' },
     });
   } catch (err) {
     console.error(err);

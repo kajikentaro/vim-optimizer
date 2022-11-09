@@ -8,8 +8,6 @@ import {
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
-const result1: ExecuteResult[] = [];
-
 function getFilterdAllActions(): [BaseAction[], string[][]] {
   const allActions = getAllActions();
 
@@ -46,7 +44,13 @@ function getFilterdAllActions(): [BaseAction[], string[][]] {
 }
 
 async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: string[][]) {
-  const result1: object[] = [];
+  for (let i = 0; i < allActions.length; i++) {
+    if (allActions[i].keys[0] === 'v') {
+      console.log('hoge');
+    }
+  }
+
+  const resultSingle: ExecuteResult[] = [];
   for (let i = 0; i < allActions.length; i++) {
     try {
       const res = await executeTestA({
@@ -66,7 +70,7 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
         console.log('skip ' + allActionKeys[i]);
         continue;
       }
-      result1.push({ actionKeys: allActionKeys[i], ...res });
+      resultSingle.push(res);
       console.log('done ' + allActionKeys[i]);
     } catch (e) {
       if (e instanceof EditorNotActiveError) {
@@ -83,24 +87,18 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
       }
     }
   }
-  logB(JSON.stringify(result1));
+  logB(JSON.stringify(resultSingle));
 }
 
-export async function preprocess() {
-  const configuration = new Configuration();
-  configuration.tabstop = 4;
-  configuration.expandtab = false;
-
-  // 前処理(キー2つ)
-  const [allActions, allActionKeys] = getFilterdAllActions();
-  console.log('preprocessing of two actions');
-  await setupWorkspace(configuration);
-  logReset();
-
-  await preprocessSingleAction(allActions, allActionKeys);
-
-  for (let i = 0; i < allActions.length; i++) {
+async function preprocessDoubleAction(
+  allActions: BaseAction[],
+  allActionKeys: string[][],
+  startIdx: number,
+  endIdx: number
+) {
+  for (let i = startIdx; i < endIdx; i++) {
     const startTimeMs = new Date().getTime();
+    const resultSingle: ExecuteResult[] = [];
     for (let j = 0; j < allActions.length; j++) {
       try {
         const res = await executeTestA({
@@ -120,7 +118,7 @@ export async function preprocess() {
           console.log('skip ' + allActionKeys[i] + ',' + allActionKeys[j]);
           continue;
         }
-        result1.push(res);
+        resultSingle.push(res);
         console.log('done ' + allActionKeys[i] + ',' + allActionKeys[j]);
       } catch (e) {
         if (e instanceof EditorNotActiveError) {
@@ -139,10 +137,28 @@ export async function preprocess() {
     }
     const endTimeMs = new Date().getTime();
     console.log('time ' + (endTimeMs - startTimeMs) / allActions.length + 'ms per action');
+    logA(JSON.stringify(resultSingle));
   }
+}
+
+export async function preprocess() {
+  const result1: ExecuteResult[] = [];
+  const configuration = new Configuration();
+  configuration.tabstop = 4;
+  configuration.expandtab = false;
+
+  // 前処理(キー2つ)
+  const [allActions, allActionKeys] = getFilterdAllActions();
+  console.log('preprocessing of two actions');
+  await setupWorkspace(configuration);
+
+  const startIdx = parseInt(process.env.START || '0');
+  const endIdx = parseInt(process.env.END || allActions.length + '');
+
+  startIdx === 0 && (await preprocessSingleAction(allActions, allActionKeys));
+  await preprocessDoubleAction(allActions, allActionKeys, startIdx, endIdx);
 
   console.log('done preprocessing');
-  log(JSON.stringify(result1));
 }
 
 export async function logReset() {
@@ -150,12 +166,14 @@ export async function logReset() {
   await fs.writeFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', '');
   await fs.writeFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', '');
 }
-export async function log(text: string) {
+export async function logA(text: string) {
   const fs = require('fs').promises;
   await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', text);
+  await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', '\n');
 }
 
 export async function logB(text: string) {
   const fs = require('fs').promises;
   await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', text);
+  await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', '\n');
 }

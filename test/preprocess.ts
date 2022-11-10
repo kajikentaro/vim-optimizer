@@ -1,4 +1,5 @@
 import { BaseAction, getAllActions } from '../src/actions/base';
+import { logA, logB } from './const';
 import {
   EditorNotActiveError,
   ExecuteResult,
@@ -142,7 +143,6 @@ async function preprocessDoubleAction(
 }
 
 export async function preprocess() {
-  const result1: ExecuteResult[] = [];
   const configuration = new Configuration();
   configuration.tabstop = 4;
   configuration.expandtab = false;
@@ -159,21 +159,4 @@ export async function preprocess() {
   await preprocessDoubleAction(allActions, allActionKeys, startIdx, endIdx);
 
   console.log('done preprocessing');
-}
-
-export async function logReset() {
-  const fs = require('fs').promises;
-  await fs.writeFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', '');
-  await fs.writeFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', '');
-}
-export async function logA(text: string) {
-  const fs = require('fs').promises;
-  await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', text);
-  await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', '\n');
-}
-
-export async function logB(text: string) {
-  const fs = require('fs').promises;
-  await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', text);
-  await fs.appendFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', '\n');
 }

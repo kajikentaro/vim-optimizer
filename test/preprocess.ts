@@ -8,8 +8,6 @@ import {
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
-const result1: ExecuteResult[] = [];
-
 function getFilterdAllActions(): [BaseAction[], string[][]] {
   const allActions = getAllActions();
 
@@ -46,7 +44,7 @@ function getFilterdAllActions(): [BaseAction[], string[][]] {
 }
 
 async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: string[][]) {
-  const result1: object[] = [];
+  const result1: ExecuteResult[] = [];
   for (let i = 0; i < allActions.length; i++) {
     try {
       const res = await executeTestA({
@@ -66,7 +64,7 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
         console.log('skip ' + allActionKeys[i]);
         continue;
       }
-      result1.push({ actionKeys: allActionKeys[i], ...res });
+      result1.push(res);
       console.log('done ' + allActionKeys[i]);
     } catch (e) {
       if (e instanceof EditorNotActiveError) {
@@ -87,6 +85,7 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
 }
 
 export async function preprocess() {
+  const result1: ExecuteResult[] = [];
   const configuration = new Configuration();
   configuration.tabstop = 4;
   configuration.expandtab = false;
@@ -95,11 +94,14 @@ export async function preprocess() {
   const [allActions, allActionKeys] = getFilterdAllActions();
   console.log('preprocessing of two actions');
   await setupWorkspace(configuration);
-  logReset();
 
-  await preprocessSingleAction(allActions, allActionKeys);
+  const startIdx = parseInt(process.env.START || '0');
+  const endIdx = parseInt(process.env.END || allActions.length + '');
+  if (startIdx === 0) {
+    await preprocessSingleAction(allActions, allActionKeys);
+  }
 
-  for (let i = 0; i < allActions.length; i++) {
+  for (let i = startIdx; i < endIdx; i++) {
     const startTimeMs = new Date().getTime();
     for (let j = 0; j < allActions.length; j++) {
       try {

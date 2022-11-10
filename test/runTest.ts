@@ -13,11 +13,45 @@ async function main() {
     const extensionTestsPath = path.resolve(__dirname, './index');
 
     // Download VS Code, unzip it and run the integration test
-    await runTests({
-      extensionDevelopmentPath,
-      extensionTestsPath,
-      // Disable other extensions while running tests for avoiding unexpected side-effect
-      launchArgs: ['--disable-extensions'],
+    logReset();
+    await new Promise(async (resolve, reject) => {
+      let cnt = 3;
+      const ok = () => {
+        cnt--;
+        if (cnt === 0) {
+          resolve(undefined);
+        }
+      };
+      (async () => {
+        await runTests({
+          extensionDevelopmentPath,
+          extensionTestsPath,
+          // Disable other extensions while running tests for avoiding unexpected side-effect
+          launchArgs: ['--disable-extensions'],
+          extensionTestsEnv: { START: '0', END: '200' },
+        });
+        ok();
+      })();
+      (async () => {
+        await runTests({
+          extensionDevelopmentPath,
+          extensionTestsPath,
+          // Disable other extensions while running tests for avoiding unexpected side-effect
+          launchArgs: ['--disable-extensions'],
+          extensionTestsEnv: { START: '200', END: '400' },
+        });
+        ok();
+      })();
+      (async () => {
+        await runTests({
+          extensionDevelopmentPath,
+          extensionTestsPath,
+          // Disable other extensions while running tests for avoiding unexpected side-effect
+          launchArgs: ['--disable-extensions'],
+          extensionTestsEnv: { START: '400' },
+        });
+        ok();
+      })();
     });
   } catch (err) {
     console.error(err);
@@ -27,3 +61,9 @@ async function main() {
 }
 
 main();
+
+export async function logReset() {
+  const fs = require('fs').promises;
+  await fs.writeFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-A.txt', '');
+  await fs.writeFile('C:\\Users\\aaa\\Downloads\\VSCodeVim-B.txt', '');
+}

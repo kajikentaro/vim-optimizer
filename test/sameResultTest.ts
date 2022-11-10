@@ -137,6 +137,7 @@ function tokenizeKeySequence(sequence: string): string[] {
 }
 
 export interface ExecuteResult {
+  actionKeys: string[];
   text: string;
   position: Position;
   mode: string;
@@ -202,6 +203,7 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
 
   const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
   return {
+    actionKeys: testObj.actionKeys.flat(),
     text: resultTextA || '',
     position: actualPosition,
     mode: actualModeA,

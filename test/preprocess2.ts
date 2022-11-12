@@ -1,22 +1,18 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
-import { DOUBLE_ACTION_RES_FILE, logTest, logTestReset, SINGLE_ACTION_RES_FILE } from './const';
-import { ExecuteResult } from './sameResultTest';
+import {
+  DOUBLE_ACTION_RES_FILE,
+  ExecuteResult,
+  logTest,
+  logTestReset,
+  SINGLE_ACTION_RES_FILE,
+} from './const';
 
 export interface ExecuteResultKey {
   text: string;
   cursorLine: number;
   cursorCharacter: number;
   mode: string;
-}
-
-function isSameActionResult(a: ExecuteResult, b: ExecuteResult) {
-  return (
-    a.mode === b.mode &&
-    a.position.line === b.position.line &&
-    a.position.character === b.position.character &&
-    a.text === b.text
-  );
 }
 
 export default async function preprocess2() {

@@ -10,29 +10,9 @@ import { Mode } from '../src/mode/mode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { Register } from '../src/register/register';
 import { globalState } from '../src/state/globalState';
+import { ExecuteResult } from './const';
 
-function getNiceStack(stack: string | undefined): string {
-  return stack ? stack.split('\n').splice(2, 1).join('\n') : 'no stack available :(';
-}
-
-interface SameReulstTestObject {
-  title: string;
-  config?: Partial<IConfiguration>;
-  editorOptions?: vscode.TextEditorOptions;
-  start: string[];
-  keysPressedA: string;
-  keysPressedB: string;
-  endMode?: Mode;
-  statusBar?: string;
-  jumps?: string[];
-  stub?: {
-    stubClass: any;
-    methodName: string;
-    returnValue: any;
-  };
-}
-
-interface SameReulstTestObjectA {
+interface SameResultTestObject {
   title: string;
   config?: Partial<IConfiguration>;
   editorOptions?: vscode.TextEditorOptions;
@@ -61,9 +41,9 @@ class TestObjectHelper {
   endPosition = new Position(0, 0);
 
   public readonly isValid: boolean;
-  private readonly testObject: SameReulstTestObjectA;
+  private readonly testObject: SameResultTestObject;
 
-  constructor(testObject: SameReulstTestObjectA) {
+  constructor(testObject: SameResultTestObject) {
     this.testObject = testObject;
 
     this.isValid = this.setStartCursorPosition(testObject.start);
@@ -135,8 +115,7 @@ function tokenizeKeySequence(sequence: string): string[] {
   return result;
 }
 
-export interface ExecuteResult {
-  actionKeys: string[];
+interface MonitoredResult {
   text: string;
   position: Position;
   mode: string;
@@ -151,24 +130,23 @@ export class EditorNotActiveError extends Error {}
 // アクションを実行しても変わらない場合のエラー
 export class NotModifiedError extends Error {}
 
-export function isSameResult(
-  helper: TestObjectHelper,
-  modeHandler: ModeHandler,
-  testObj: SameReulstTestObjectA
-) {
-  const resultTextA = vscode.window.activeTextEditor?.document.getText();
-  const actualPosition = modeHandler.vimState.editor.selection.start;
-  const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
-
+function isSameResult(a: MonitoredResult, b: MonitoredResult) {
   return (
-    resultTextA === testObj.start.join('\n').replace('|', '') &&
-    actualModeA === 'NORMAL' &&
-    actualPosition.line === helper.startPosition.line &&
-    actualPosition.character === helper.startPosition.character
+    a.text === b.text &&
+    a.mode === b.mode &&
+    a.position.line === b.position.line &&
+    a.position.character === b.position.character
   );
 }
 
-export async function executeTestA(testObj: SameReulstTestObjectA): Promise<ExecuteResult> {
+function getResultObject(modeHandler: ModeHandler): MonitoredResult {
+  const text = vscode.window.activeTextEditor?.document.getText() || '';
+  const position = modeHandler.vimState.editor.selection.start;
+  const mode = Mode[modeHandler.currentMode].toUpperCase();
+  return { text, position, mode };
+}
+
+export async function executeTest(testObj: SameResultTestObject): Promise<ExecuteResult> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, new EditorNotActiveError('Expected an active editor'));
 
@@ -198,6 +176,7 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
 
   Register.clearAllRegisters();
 
+  let result = getResultObject(modeHandler);
   for (let i = 0; i < testObj.actions.length; i++) {
     const action = testObj.actions[i];
     const actionKey = testObj.actionKeys[i];
@@ -205,43 +184,36 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
       continue;
     }
 
-    // 2回目のアクションがあるときに、何ら変更がなかったらエラーにする。
-    if (i === 1) {
-      if (
-        modeHandler.vimState.recordedState.actionsRun.length === 0 &&
-        isSameResult(helper, modeHandler, testObj)
-      ) {
-        throw new NotModifiedError();
-      }
-    }
-
     if (action.doesActionApply(modeHandler.vimState, actionKey)) {
       modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
       await modeHandler.myHandleKeyAsAnAction(action);
-      continue;
-    }
-    if (
+    } else if (
       action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
     ) {
-      continue;
+      // do thing
+    } else {
+      throw new NotCompatibleError();
     }
-    throw new NotCompatibleError();
+
+    const nowResult = getResultObject(modeHandler);
+    // アクションの前と比べて、何ら変更がなかったらエラーにする。
+    if (
+      modeHandler.vimState.recordedState.actionsRun.length === 0 &&
+      isSameResult(nowResult, result)
+    ) {
+      throw new NotModifiedError();
+    }
+
+    result = nowResult;
   }
+
+  // アクションが完了していない場合
   if (modeHandler.vimState.recordedState.actionsRun.length !== 0) {
     throw new NotModifiedError();
   }
 
-  if (isSameResult(helper, modeHandler, testObj)) {
-    throw new NotModifiedError();
-  }
-
-  const resultTextA = vscode.window.activeTextEditor?.document.getText();
-  const actualPosition = modeHandler.vimState.editor.selection.start;
-  const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
   return {
     actionKeys: testObj.actionKeys.flat(),
-    text: resultTextA || '',
-    position: actualPosition,
-    mode: actualModeA,
+    ...result,
   };
 }

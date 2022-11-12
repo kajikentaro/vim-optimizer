@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import { Position } from 'vscode';
 export const SINGLE_ACTION_RES_FILE = __dirname + '/SingleAction.txt';
 export const DOUBLE_ACTION_RES_FILE = __dirname + '/DoubleAction.txt';
 export const TEST_FILE = __dirname + '/test.txt';
@@ -24,4 +25,11 @@ export async function logTestReset() {
 export async function logTest(text: string) {
   await fs.appendFile(TEST_FILE, text);
   await fs.appendFile(TEST_FILE, '\n');
+}
+
+export interface ExecuteResult {
+  actionKeys: string[];
+  text: string;
+  position: Position;
+  mode: string;
 }

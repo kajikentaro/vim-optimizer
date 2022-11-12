@@ -1,9 +1,8 @@
 import { BaseAction, getAllActions } from '../src/actions/base';
-import { logA, logB, logReset } from './const';
+import { ExecuteResult, logA, logB, logReset } from './const';
 import {
   EditorNotActiveError,
-  ExecuteResult,
-  executeTestA,
+  executeTest,
   NotCompatibleError,
   NotModifiedError,
 } from './sameResultTest';
@@ -55,7 +54,7 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
   const resultSingle: ExecuteResult[] = [];
   for (let i = 0; i < allActions.length; i++) {
     try {
-      const res = await executeTestA({
+      const res = await executeTest({
         title: 'ほげ',
         start: ['one |two three'],
         actions: [allActions[i]],
@@ -105,7 +104,7 @@ async function preprocessDoubleAction(
     const resultSingle: ExecuteResult[] = [];
     for (let j = 0; j < allActions.length; j++) {
       try {
-        const res = await executeTestA({
+        const res = await executeTest({
           title: 'ほげ',
           start: ['one |two three'],
           actions: [allActions[i], allActions[j]],

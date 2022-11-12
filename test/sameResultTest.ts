@@ -3,14 +3,13 @@ import * as vscode from 'vscode';
 import { Range } from 'vscode';
 import { BaseAction, KeypressState } from '../src/actions/base';
 
+import { ModeHandler } from 'src/mode/modeHandler';
 import { Position } from 'vscode';
 import { IConfiguration } from '../src/configuration/iconfiguration';
 import { Mode } from '../src/mode/mode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { Register } from '../src/register/register';
 import { globalState } from '../src/state/globalState';
-import { Configuration } from './testConfiguration';
-import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
 function getNiceStack(stack: string | undefined): string {
   return stack ? stack.split('\n').splice(2, 1).join('\n') : 'no stack available :(';
@@ -143,8 +142,31 @@ export interface ExecuteResult {
   mode: string;
 }
 
+// 連続して使用できない操作の場合のエラー(d -> y など)
 export class NotCompatibleError extends Error {}
+
+// エディターが開いていない場合のエラー(:q の後のテストなど)
 export class EditorNotActiveError extends Error {}
+
+// アクションを実行しても変わらない場合のエラー
+export class NotModifiedError extends Error {}
+
+export function isSameResult(
+  helper: TestObjectHelper,
+  modeHandler: ModeHandler,
+  testObj: SameReulstTestObjectA
+) {
+  const resultTextA = vscode.window.activeTextEditor?.document.getText();
+  const actualPosition = modeHandler.vimState.editor.selection.start;
+  const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
+
+  return (
+    resultTextA === testObj.start.join('\n').replace('|', '') &&
+    actualModeA === 'NORMAL' &&
+    actualPosition.line === helper.startPosition.line &&
+    actualPosition.character === helper.startPosition.character
+  );
+}
 
 export async function executeTestA(testObj: SameReulstTestObjectA): Promise<ExecuteResult> {
   const editor = vscode.window.activeTextEditor;
@@ -182,6 +204,17 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
     if (!(action instanceof BaseAction)) {
       continue;
     }
+
+    // 2回目のアクションがあるときに、何ら変更がなかったらエラーにする。
+    if (i === 1) {
+      if (
+        modeHandler.vimState.recordedState.actionsRun.length === 0 &&
+        isSameResult(helper, modeHandler, testObj)
+      ) {
+        throw new NotModifiedError();
+      }
+    }
+
     if (action.doesActionApply(modeHandler.vimState, actionKey)) {
       modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
       await modeHandler.myHandleKeyAsAnAction(action);
@@ -194,13 +227,16 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
     }
     throw new NotCompatibleError();
   }
+  if (modeHandler.vimState.recordedState.actionsRun.length !== 0) {
+    throw new NotModifiedError();
+  }
 
-  // Check given end output is correct
+  if (isSameResult(helper, modeHandler, testObj)) {
+    throw new NotModifiedError();
+  }
+
   const resultTextA = vscode.window.activeTextEditor?.document.getText();
-
-  // Check final cursor position
   const actualPosition = modeHandler.vimState.editor.selection.start;
-
   const actualModeA = Mode[modeHandler.currentMode].toUpperCase();
   return {
     actionKeys: testObj.actionKeys.flat(),
@@ -208,15 +244,4 @@ export async function executeTestA(testObj: SameReulstTestObjectA): Promise<Exec
     position: actualPosition,
     mode: actualModeA,
   };
-}
-
-async function clearAndSetupEditor() {
-  await cleanUpWorkspace();
-
-  // setup
-  const configuration = new Configuration();
-  configuration.tabstop = 4;
-  configuration.expandtab = false;
-
-  await setupWorkspace(configuration);
 }

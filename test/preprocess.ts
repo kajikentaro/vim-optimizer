@@ -1,10 +1,11 @@
 import { BaseAction, getAllActions } from '../src/actions/base';
-import { logA, logB } from './const';
+import { logA, logB, logReset } from './const';
 import {
   EditorNotActiveError,
   ExecuteResult,
   executeTestA,
   NotCompatibleError,
+  NotModifiedError,
 } from './sameResultTest';
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
@@ -82,6 +83,8 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
         continue;
       } else if (e instanceof NotCompatibleError) {
         console.error('not compatible ' + allActionKeys[i]);
+      } else if (e instanceof NotModifiedError) {
+        console.error('not modified ' + allActionKeys[i]);
       } else {
         console.error('違うエラー ' + allActionKeys[i]);
         continue;
@@ -143,6 +146,7 @@ async function preprocessDoubleAction(
 }
 
 export async function preprocess() {
+  logReset();
   const configuration = new Configuration();
   configuration.tabstop = 4;
   configuration.expandtab = false;

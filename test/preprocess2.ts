@@ -51,11 +51,15 @@ export default async function preprocess2() {
   }
 
   logTestReset();
+  let i = 0;
   for (const [k, v] of resMap) {
+    i++;
     if (v.length === 1) continue;
     let res = k + '\n';
+    let j = 0;
     for (const a of v) {
-      res += a.join('') + '\n';
+      res += a.join('').replace(/\n/, '\\n') + '\n';
+      j++;
     }
     res += '\n';
     logTest(res);

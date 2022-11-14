@@ -292,11 +292,19 @@ export function RegisterAction(action: new () => BaseAction): void {
 }
 
 export function getAllActions() {
-  const allActions = [];
+  // 複数のモードに対応しているアクションの場合は重複しているので治す
+  const allActionMaps = new Map<string, BaseAction>();
   for (const [_, actions] of actionMap) {
     for (const action of actions) {
-      allActions.push(new action());
+      allActionMaps.set(action.name, new action());
     }
   }
+
+  // mapを配列にする
+  const allActions = [];
+  for (const [_, action] of allActionMaps) {
+    allActions.push(action);
+  }
+
   return allActions;
 }

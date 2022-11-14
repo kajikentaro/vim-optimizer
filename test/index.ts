@@ -33,7 +33,7 @@ export async function run(): Promise<void> {
 
   const testsRoot = path.resolve(__dirname, '.');
 
-  // await preprocess();
+  // await preprocess()
   await preprocess2();
 
   return new Promise((c, e) => {

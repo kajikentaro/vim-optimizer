@@ -186,8 +186,10 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
     }
 
     if (action.action.doesActionApply(modeHandler.vimState, action.keys)) {
+      // from handleKeyEvent
       modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
-      await modeHandler.myHandleKeyAsAnAction(action.action);
+
+      await modeHandler.myHandleKeyAsAnAction(action.action, action.keys);
     } else if (
       action.action.couldActionApply(
         modeHandler.vimState,

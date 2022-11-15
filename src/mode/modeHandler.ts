@@ -587,26 +587,20 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
     }
   }
 
-  public async myHandleKeyAsAnAction(action: BaseAction | KeypressState): Promise<boolean> {
-    const recordedState = this.vimState.recordedState;
-    // recordedState.actionKeys.push(key);
-
-    switch (action) {
-      case KeypressState.NoPossibleMatch:
-        if (this.vimState.currentMode === Mode.Insert) {
-          this.vimState.recordedState.actionKeys = [];
-        } else {
-          this.vimState.recordedState = new RecordedState();
-        }
-        // Since there is no possible action we are no longer waiting any action keys
-        this.vimState.recordedState.waitingForAnotherActionKey = false;
-
-        return false;
-      case KeypressState.WaitingOnKeys:
-        this.vimState.recordedState.waitingForAnotherActionKey = true;
-
-        return false;
+  public async myHandleKeyAsAnAction(action: BaseAction, keyPressed: string[]): Promise<boolean> {
+    if (vscode.window.activeTextEditor !== this.vimState.editor) {
+      ModeHandler.logger.warn('Current window is not active');
+      return false;
     }
+
+    // Catch any text change not triggered by us (example: tab completion).
+    this.vimState.historyTracker.addChange();
+
+    const recordedState = this.vimState.recordedState;
+    recordedState.actionKeys.push(...keyPressed);
+
+    // from getRelevantAction
+    action.keysPressed = recordedState.actionKeys.slice(0);
 
     if (
       !this.remapState.remapUsedACharacter &&
@@ -639,7 +633,7 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
       if (lastAction instanceof DocumentContentChangeAction) {
         if (!(action instanceof CommandEscInsertMode)) {
           // TODO: this includes things like <BS>, which it shouldn't
-          // lastAction.keysPressed.push(key);
+          lastAction.keysPressed.push(...keyPressed);
         }
 
         if (actionCanBeMergedWithDocumentChange) {
@@ -661,7 +655,7 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
           const newContentChange = new DocumentContentChangeAction(
             this.vimState.cursorStopPosition
           );
-          // newContentChange.keysPressed.push(key);
+          newContentChange.keysPressed.push(...keyPressed);
           recordedState.actionsRun.push(newContentChange);
           actionToRecord = newContentChange;
         } else {

@@ -128,6 +128,9 @@ export class EditorNotActiveError extends Error {}
 // アクションを実行しても変わらない場合のエラー
 export class NotModifiedError extends Error {}
 
+// iw, a) など 最初に実行してはいけないものを実行した場合のエラー
+export class NotAllowFirstAction extends Error {}
+
 function isSameResult(a: MonitoredResult, b: MonitoredResult) {
   return (
     a.text === b.text &&
@@ -177,6 +180,11 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
   let result = getResultObject(modeHandler);
   for (let i = 0; i < testObj.actions.length; i++) {
     const action = testObj.actions[i];
+
+    if (modeHandler.vimState.recordedState.actionsRun.length === 0 && action.isBanFirstAction) {
+      throw new NotAllowFirstAction();
+    }
+
     if (action.action.doesActionApply(modeHandler.vimState, action.keys)) {
       modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
       await modeHandler.myHandleKeyAsAnAction(action.action);

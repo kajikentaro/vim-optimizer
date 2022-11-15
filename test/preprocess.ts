@@ -1,8 +1,10 @@
 import { getAllActions } from '../src/actions/base';
 import { ExecuteAction, ExecuteResult, logA, logB, logReset } from './const';
+import { createUnreachableActionTree } from './createUnreachableActionTree';
 import {
   EditorNotActiveError,
   executeTest,
+  NotAllowFirstAction,
   NotCompatibleError,
   NotModifiedError,
 } from './sameResultTest';
@@ -65,10 +67,12 @@ async function preprocessSingleAction(allActions: ExecuteAction[]) {
         console.error('not compatible ' + allActions[i].keys);
       } else if (e instanceof NotModifiedError) {
         console.error('not modified ' + allActions[i].keys);
+      } else if (e instanceof NotAllowFirstAction) {
+        console.error('not allow first ' + allActions[i].keys);
       } else {
         console.error('違うエラー ' + allActions[i].keys);
-        continue;
       }
+      // TODO: singleActionでエラーになった場合は、そのアクションはboubleActionで実行しないようにする
     }
   }
   logB(JSON.stringify(resultSingle));
@@ -103,9 +107,10 @@ async function preprocessDoubleAction(
           console.error('not compatible ' + allActions[i].keys + ',' + allActions[j].keys);
         } else if (e instanceof NotModifiedError) {
           console.error('not modified ' + allActions[i].keys + ',' + allActions[j].keys);
+        } else if (e instanceof NotAllowFirstAction) {
+          console.error('not allow first ' + allActions[i].keys + ',' + allActions[j].keys);
         } else {
           console.error('違うエラー ' + allActions[i].keys + ',' + allActions[j].keys);
-          continue;
         }
       }
     }
@@ -122,83 +127,15 @@ export async function preprocess() {
   configuration.expandtab = false;
 
   // 前処理(キー2つ)
-  const allActions = getFilterdAllActions();
-  console.log('preprocessing of two actions');
+  let allActions = getFilterdAllActions();
   await setupWorkspace(configuration);
 
   const startIdx = parseInt(process.env.START || '0');
   const endIdx = parseInt(process.env.END || allActions.length + '');
 
-  // const isBanFirstAction = createUnreachableActionTree(allActions);
+  allActions = await createUnreachableActionTree(allActions);
   startIdx === 0 && (await preprocessSingleAction(allActions));
   await preprocessDoubleAction(allActions, startIdx, endIdx);
 
   console.log('done preprocessing');
-}
-
-// aw, i)などの範囲指定コマンドは、オペレーターがない状態で初回実行できない。
-// 初回実行を想定していないアクションを抽出するため、
-// ノードがアクションキーとなる木を作り、「doesActionApplyがtrueとなるアクションの子」をメモしておくことでこれを防ぐ
-function createUnreachableActionTree(allActions: ExecuteAction[]) {
-  class Node {
-    key: string;
-    nextNode: Map<string, Node>;
-
-    // 木を作った後に使用する値
-    actionIdx: number[];
-
-    constructor(key: string) {
-      this.key = key;
-      this.nextNode = new Map<string, Node>();
-      this.actionIdx = [];
-    }
-
-    getNext(key: string): Node {
-      const nextNode = this.nextNode.get(key);
-      if (typeof nextNode !== 'undefined') {
-        return nextNode;
-      }
-      const newNode = new Node(key);
-      this.nextNode.set(key, newNode);
-      return newNode;
-    }
-  }
-
-  // 木を作る
-  const firstNode = new Node('FIRST');
-  for (let i = 0; i < allActions.length; i++) {
-    const actionKey = allActions[i].keys;
-    let now = firstNode.getNext(actionKey[0]);
-    for (let j = 0; j < actionKey.length; i++) {
-      if (j === 0) continue;
-      now = now.getNext(actionKey[j]);
-    }
-    now.actionIdx.push(i);
-  }
-
-  function examineDoesActionApply(allAction: ExecuteAction): boolean {
-    return true;
-  }
-
-  const isBanFirstActions = new Array<boolean>(allActions.length).fill(false);
-  const dfs = (now: Node, didAction: boolean) => {
-    // アクションがすでに実行されていた場合は結果の配列に追加
-    for (const idx of now.actionIdx) {
-      isBanFirstActions[idx] = didAction;
-    }
-
-    // このノードでアクションが実行されるか調べる
-    let doAction = didAction;
-    for (const idx of now.actionIdx) {
-      doAction = doAction || examineDoesActionApply(allActions[idx]);
-    }
-
-    // 再帰
-    for (const [_, nextNode] of now.nextNode) {
-      dfs(nextNode, doAction);
-    }
-  };
-  dfs(firstNode, false);
-
-  return isBanFirstActions;
 }

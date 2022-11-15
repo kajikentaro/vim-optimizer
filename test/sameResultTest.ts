@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { Range } from 'vscode';
-import { BaseAction, KeypressState } from '../src/actions/base';
 
 import { ModeHandler } from 'src/mode/modeHandler';
 import { Position } from 'vscode';
@@ -10,15 +9,14 @@ import { Mode } from '../src/mode/mode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { Register } from '../src/register/register';
 import { globalState } from '../src/state/globalState';
-import { ExecuteResult } from './const';
+import { ExecuteAction, ExecuteResult } from './const';
 
 interface SameResultTestObject {
   title: string;
   config?: Partial<IConfiguration>;
   editorOptions?: vscode.TextEditorOptions;
   start: string[];
-  actions: BaseAction[] | KeypressState[];
-  actionKeys: string[][];
+  actions: ExecuteAction[];
   endMode?: Mode;
   statusBar?: string;
   jumps?: string[];
@@ -179,16 +177,14 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
   let result = getResultObject(modeHandler);
   for (let i = 0; i < testObj.actions.length; i++) {
     const action = testObj.actions[i];
-    const actionKey = testObj.actionKeys[i];
-    if (!(action instanceof BaseAction)) {
-      continue;
-    }
-
-    if (action.doesActionApply(modeHandler.vimState, actionKey)) {
+    if (action.action.doesActionApply(modeHandler.vimState, action.keys)) {
       modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
-      await modeHandler.myHandleKeyAsAnAction(action);
+      await modeHandler.myHandleKeyAsAnAction(action.action);
     } else if (
-      action.couldActionApply(modeHandler.vimState, modeHandler.vimState.recordedState.actionKeys)
+      action.action.couldActionApply(
+        modeHandler.vimState,
+        modeHandler.vimState.recordedState.actionKeys
+      )
     ) {
       // do thing
     } else {
@@ -213,7 +209,7 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
   }
 
   return {
-    actionKeys: testObj.actionKeys.flat(),
+    actionKeys: testObj.actions.map((v) => v.keys).flat(),
     ...result,
   };
 }

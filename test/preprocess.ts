@@ -1,5 +1,5 @@
-import { BaseAction, getAllActions } from '../src/actions/base';
-import { ExecuteResult, logA, logB, logReset } from './const';
+import { getAllActions } from '../src/actions/base';
+import { ExecuteAction, ExecuteResult, logA, logB, logReset } from './const';
 import {
   EditorNotActiveError,
   executeTest,
@@ -9,11 +9,10 @@ import {
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
-function getFilterdAllActions(): [BaseAction[], string[][]] {
+function getFilterdAllActions(): ExecuteAction[] {
   const allActions = getAllActions();
 
-  const simpleActions: BaseAction[] = [];
-  const simpleActionKeys: string[][] = [];
+  const simpleActions: ExecuteAction[] = [];
   for (const action of allActions) {
     // 2Dと3Dの物があるので、3Dに統一する
     let checkingKeys: string[][];
@@ -35,22 +34,15 @@ function getFilterdAllActions(): [BaseAction[], string[][]] {
       }
       if (isOk) {
         // どれか一つが単純だった場合に追加して終了
-        simpleActions.push(action);
-        simpleActionKeys.push(keys);
+        simpleActions.push({ action, keys: keys, isBanFirstAction: false });
         break;
       }
     }
   }
-  return [simpleActions, simpleActionKeys];
+  return simpleActions;
 }
 
-async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: string[][]) {
-  for (let i = 0; i < allActions.length; i++) {
-    if (allActions[i].keys[0] === 'v') {
-      console.log('hoge');
-    }
-  }
-
+async function preprocessSingleAction(allActions: ExecuteAction[]) {
   const resultSingle: ExecuteResult[] = [];
   for (let i = 0; i < allActions.length; i++) {
     try {
@@ -58,21 +50,10 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
         title: 'ほげ',
         start: ['one |two three'],
         actions: [allActions[i]],
-        actionKeys: [allActionKeys[i]],
       });
 
-      // 初期値と全く一緒の場合はスキップ
-      if (
-        res.text === 'one two three' &&
-        res.mode === 'NORMAL' &&
-        res.position.line === 0 &&
-        res.position.character === 4
-      ) {
-        console.log('skip ' + allActionKeys[i]);
-        continue;
-      }
       resultSingle.push(res);
-      console.log('done ' + allActionKeys[i]);
+      console.log('done ' + allActions[i].keys);
     } catch (e) {
       if (e instanceof EditorNotActiveError) {
         console.error('editor not active');
@@ -81,11 +62,11 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
         i--;
         continue;
       } else if (e instanceof NotCompatibleError) {
-        console.error('not compatible ' + allActionKeys[i]);
+        console.error('not compatible ' + allActions[i].keys);
       } else if (e instanceof NotModifiedError) {
-        console.error('not modified ' + allActionKeys[i]);
+        console.error('not modified ' + allActions[i].keys);
       } else {
-        console.error('違うエラー ' + allActionKeys[i]);
+        console.error('違うエラー ' + allActions[i].keys);
         continue;
       }
     }
@@ -94,8 +75,7 @@ async function preprocessSingleAction(allActions: BaseAction[], allActionKeys: s
 }
 
 async function preprocessDoubleAction(
-  allActions: BaseAction[],
-  allActionKeys: string[][],
+  allActions: ExecuteAction[],
   startIdx: number,
   endIdx: number
 ) {
@@ -108,21 +88,10 @@ async function preprocessDoubleAction(
           title: 'ほげ',
           start: ['one |two three'],
           actions: [allActions[i], allActions[j]],
-          actionKeys: [allActionKeys[i], allActionKeys[j]],
         });
 
-        // 初期値と全く一緒の場合はスキップ
-        if (
-          res.text === 'one two three' &&
-          res.mode === 'NORMAL' &&
-          res.position.line === 0 &&
-          res.position.character === 4
-        ) {
-          console.log('skip ' + allActionKeys[i] + ',' + allActionKeys[j]);
-          continue;
-        }
         resultSingle.push(res);
-        console.log('done ' + allActionKeys[i] + ',' + allActionKeys[j]);
+        console.log('done ' + allActions[i].keys + ',' + allActions.keys[j]);
       } catch (e) {
         if (e instanceof EditorNotActiveError) {
           console.error('editor not active');
@@ -131,9 +100,11 @@ async function preprocessDoubleAction(
           j--;
           continue;
         } else if (e instanceof NotCompatibleError) {
-          console.error('not compatible ' + allActionKeys[i] + ',' + allActionKeys[j]);
+          console.error('not compatible ' + allActions[i].keys + ',' + allActions[j].keys);
+        } else if (e instanceof NotModifiedError) {
+          console.error('not modified ' + allActions[i].keys + ',' + allActions[j].keys);
         } else {
-          console.error('違うエラー ' + allActionKeys[i] + ',' + allActionKeys[j]);
+          console.error('違うエラー ' + allActions[i].keys + ',' + allActions[j].keys);
           continue;
         }
       }
@@ -151,16 +122,16 @@ export async function preprocess() {
   configuration.expandtab = false;
 
   // 前処理(キー2つ)
-  const [allActions, allActionKeys] = getFilterdAllActions();
+  const allActions = getFilterdAllActions();
   console.log('preprocessing of two actions');
   await setupWorkspace(configuration);
 
   const startIdx = parseInt(process.env.START || '0');
   const endIdx = parseInt(process.env.END || allActions.length + '');
 
-  const isBanFirstAction = createUnreachableActionTree(allActions, allActionKeys);
-  startIdx === 0 && (await preprocessSingleAction(allActions, allActionKeys));
-  await preprocessDoubleAction(allActions, allActionKeys, startIdx, endIdx);
+  // const isBanFirstAction = createUnreachableActionTree(allActions);
+  startIdx === 0 && (await preprocessSingleAction(allActions));
+  await preprocessDoubleAction(allActions, startIdx, endIdx);
 
   console.log('done preprocessing');
 }
@@ -168,7 +139,7 @@ export async function preprocess() {
 // aw, i)などの範囲指定コマンドは、オペレーターがない状態で初回実行できない。
 // 初回実行を想定していないアクションを抽出するため、
 // ノードがアクションキーとなる木を作り、「doesActionApplyがtrueとなるアクションの子」をメモしておくことでこれを防ぐ
-function createUnreachableActionTree(allActions: BaseAction[], allActionKeys: string[][]) {
+function createUnreachableActionTree(allActions: ExecuteAction[]) {
   class Node {
     key: string;
     nextNode: Map<string, Node>;
@@ -196,7 +167,7 @@ function createUnreachableActionTree(allActions: BaseAction[], allActionKeys: st
   // 木を作る
   const firstNode = new Node('FIRST');
   for (let i = 0; i < allActions.length; i++) {
-    const actionKey = allActionKeys[i];
+    const actionKey = allActions[i].keys;
     let now = firstNode.getNext(actionKey[0]);
     for (let j = 0; j < actionKey.length; i++) {
       if (j === 0) continue;
@@ -205,7 +176,7 @@ function createUnreachableActionTree(allActions: BaseAction[], allActionKeys: st
     now.actionIdx.push(i);
   }
 
-  function examineDoesActionApply(action: BaseAction, key: string[]): boolean {
+  function examineDoesActionApply(allAction: ExecuteAction): boolean {
     return true;
   }
 
@@ -219,7 +190,7 @@ function createUnreachableActionTree(allActions: BaseAction[], allActionKeys: st
     // このノードでアクションが実行されるか調べる
     let doAction = didAction;
     for (const idx of now.actionIdx) {
-      doAction = doAction || examineDoesActionApply(allActions[idx], allActionKeys[idx]);
+      doAction = doAction || examineDoesActionApply(allActions[idx]);
     }
 
     // 再帰

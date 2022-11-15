@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import { BaseAction } from 'src/actions/base';
 import { Position } from 'vscode';
 export const SINGLE_ACTION_RES_FILE = __dirname + '/SingleAction.txt';
 export const DOUBLE_ACTION_RES_FILE = __dirname + '/DoubleAction.txt';
@@ -32,4 +33,10 @@ export interface ExecuteResult {
   text: string;
   position: Position;
   mode: string;
+}
+
+export interface ExecuteAction {
+  action: BaseAction;
+  keys: string[];
+  isBanFirstAction: boolean;
 }

@@ -14,6 +14,7 @@ import * as Mocha from 'mocha';
 import * as path from 'path';
 
 import { Globals } from '../src/globals';
+import { preprocess } from './preprocess';
 import preprocess2 from './preprocess2';
 import { Configuration } from './testConfiguration';
 
@@ -33,7 +34,7 @@ export async function run(): Promise<void> {
 
   const testsRoot = path.resolve(__dirname, '.');
 
-  // await preprocess()
+  await preprocess();
   await preprocess2();
 
   return new Promise((c, e) => {

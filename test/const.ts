@@ -39,4 +39,5 @@ export interface ExecuteAction {
   action: BaseAction;
   keys: string[];
   isBanFirstAction: boolean;
+  skipDoubleAction: boolean;
 }

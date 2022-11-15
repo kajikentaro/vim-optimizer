@@ -36,7 +36,12 @@ function getFilterdAllActions(): ExecuteAction[] {
       }
       if (isOk) {
         // どれか一つが単純だった場合に追加して終了
-        simpleActions.push({ action, keys: keys, isBanFirstAction: false });
+        simpleActions.push({
+          action,
+          keys: keys,
+          isBanFirstAction: false,
+          skipDoubleAction: false,
+        });
         break;
       }
     }
@@ -72,7 +77,8 @@ async function preprocessSingleAction(allActions: ExecuteAction[]) {
       } else {
         console.error('違うエラー ' + allActions[i].keys);
       }
-      // TODO: singleActionでエラーになった場合は、そのアクションはboubleActionで実行しないようにする
+      // ダブルアクションではスキップするように
+      allActions[i].skipDoubleAction = true;
     }
   }
   logB(JSON.stringify(resultSingle));
@@ -86,6 +92,10 @@ async function preprocessDoubleAction(
   for (let i = startIdx; i < endIdx; i++) {
     const startTimeMs = new Date().getTime();
     const resultSingle: ExecuteResult[] = [];
+    if (allActions[i].skipDoubleAction) {
+      console.error('skip double action ' + allActions[i].keys);
+      continue;
+    }
     for (let j = 0; j < allActions.length; j++) {
       try {
         const res = await executeTest({
@@ -95,7 +105,7 @@ async function preprocessDoubleAction(
         });
 
         resultSingle.push(res);
-        console.log('done ' + allActions[i].keys + ',' + allActions.keys[j]);
+        console.log('done ' + allActions[i].keys + ',' + allActions[j].keys);
       } catch (e) {
         if (e instanceof EditorNotActiveError) {
           console.error('editor not active');

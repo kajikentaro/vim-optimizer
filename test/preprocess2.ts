@@ -3,7 +3,6 @@ import * as readline from 'readline';
 import {
   DOUBLE_ACTION_RES_FILE,
   ExecuteResultAll,
-  ExecuteResultSingle,
   logTest,
   logTestReset,
   SINGLE_ACTION_RES_FILE,
@@ -80,34 +79,6 @@ async function readActionRes(filename: string) {
   const res = [];
   for await (const line of reader) {
     const obj = JSON.parse(line) as ExecuteResultAll[];
-    res.push(...obj);
-  }
-  return res;
-}
-
-async function readDoubleActionRes() {
-  const stream = fs.createReadStream(DOUBLE_ACTION_RES_FILE, {
-    encoding: 'utf8',
-    highWaterMark: 1024,
-  });
-  const reader = readline.createInterface({ input: stream });
-  const res = [];
-  for await (const line of reader) {
-    const obj = JSON.parse(line) as ExecuteResultSingle[];
-    res.push(...obj);
-  }
-  return res;
-}
-
-async function readSingleActionRes() {
-  const stream = fs.createReadStream(SINGLE_ACTION_RES_FILE, {
-    encoding: 'utf8',
-    highWaterMark: 1024,
-  });
-  const reader = readline.createInterface({ input: stream });
-  const res = [];
-  for await (const line of reader) {
-    const obj = JSON.parse(line) as ExecuteResultSingle[];
     res.push(...obj);
   }
   return res;

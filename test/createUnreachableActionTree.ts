@@ -4,7 +4,7 @@ import { Range } from 'vscode';
 
 import { Position } from 'vscode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
-import { ExecuteAction } from './const';
+import { ExecuteAction, readUnreachableActionCache, writeUnreachableActionCache } from './const';
 
 class Node {
   key: string;
@@ -34,6 +34,12 @@ class Node {
 // 初回実行を想定していないアクションを抽出するため、
 // ノードがアクションキーとなる木を作り、「doesActionApplyがtrueとなるアクションの子」をメモしておくことでこれを防ぐ
 export async function createUnreachableActionTree(allActions: ExecuteAction[]) {
+  // キャッシュがある場合はそれを使う
+  const cache = await readUnreachableActionCache(allActions);
+  if (cache) {
+    return cache;
+  }
+
   // 木を作る
   const firstNode = new Node('FIRST');
   for (let i = 0; i < allActions.length; i++) {
@@ -67,6 +73,7 @@ export async function createUnreachableActionTree(allActions: ExecuteAction[]) {
   };
 
   await dfs(firstNode, false);
+  writeUnreachableActionCache(allActions);
   return allActions;
 }
 

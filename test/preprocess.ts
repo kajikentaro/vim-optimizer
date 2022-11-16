@@ -74,6 +74,8 @@ async function executeTestWrapper(
       console.error('not modified ' + keyLine);
     } else if (e instanceof NotAllowFirstAction) {
       console.error('not allow first ' + keyLine);
+    } else if (e instanceof NotAllowFirstAction) {
+      console.error('not action complete' + keyLine);
     } else {
       console.error('違うエラー ' + keyLine);
     }

@@ -130,6 +130,9 @@ export class NotModifiedError extends Error {}
 // iw, a) など 最初に実行してはいけないものを実行した場合のエラー
 export class NotAllowFirstAction extends Error {}
 
+// アクションが途中で終了してしまった場合のエラー
+export class NotActionComplete extends Error {}
+
 function isSameResult(a: MonitoredResult, b: MonitoredResult) {
   return (
     a.text === b.text &&
@@ -213,8 +216,12 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
   }
 
   // アクションが完了していない場合
-  if (modeHandler.vimState.recordedState.actionsRun.length !== 0) {
-    throw new NotModifiedError();
+  // TODO InsertのときはactionsRun = ["I"]になる。その他の場合はどうなる？
+  if (
+    modeHandler.currentMode === Mode.Normal &&
+    modeHandler.vimState.recordedState.actionsRun.length !== 0
+  ) {
+    throw new NotActionComplete();
   }
 
   return {

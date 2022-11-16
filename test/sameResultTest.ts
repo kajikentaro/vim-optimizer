@@ -12,7 +12,6 @@ import { globalState } from '../src/state/globalState';
 import { ExecuteAction, ExecuteResult } from './const';
 
 interface SameResultTestObject {
-  title: string;
   config?: Partial<IConfiguration>;
   editorOptions?: vscode.TextEditorOptions;
   start: string[];

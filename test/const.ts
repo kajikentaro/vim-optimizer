@@ -9,12 +9,12 @@ export async function logReset() {
   await fs.writeFile(SINGLE_ACTION_RES_FILE, '');
   await fs.writeFile(DOUBLE_ACTION_RES_FILE, '');
 }
-export async function logA(text: string) {
+export async function logB(text: string) {
   await fs.appendFile(SINGLE_ACTION_RES_FILE, text);
   await fs.appendFile(SINGLE_ACTION_RES_FILE, '\n');
 }
 
-export async function logB(text: string) {
+export async function logA(text: string) {
   await fs.appendFile(DOUBLE_ACTION_RES_FILE, text);
   await fs.appendFile(DOUBLE_ACTION_RES_FILE, '\n');
 }

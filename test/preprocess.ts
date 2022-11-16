@@ -1,5 +1,5 @@
 import { getAllActions } from '../src/actions/base';
-import { ExecuteAction, ExecuteResult, logA, logB, logReset } from './const';
+import { ExecuteAction, ExecuteResultAll, logA, logB, logReset } from './const';
 import { createUnreachableActionTree } from './createUnreachableActionTree';
 import {
   EditorNotActiveError,
@@ -51,40 +51,54 @@ function getFilterdAllActions(): ExecuteAction[] {
 
 async function executeTestWrapper(
   executeActions: ExecuteAction[]
-): Promise<ExecuteResult | undefined> {
-  const keyLine = executeActions.map((v) => v.keys.join('')).join(' ');
-  try {
-    const res = await executeTest({
-      start: ['one |two three'],
-      actions: executeActions,
-    });
+): Promise<ExecuteResultAll | undefined> {
+  const executeResultAll: ExecuteResultAll = {
+    actionKeys: executeActions.map((v) => v.keys).flat(),
+    result: [],
+  };
 
-    console.log('done ' + keyLine);
-    return res;
-  } catch (e) {
-    if (e instanceof EditorNotActiveError) {
-      console.error('editor not active');
-      await cleanUpWorkspace();
-      await setupWorkspace();
-      // もう一度実行
-      return executeTestWrapper(executeActions);
-    } else if (e instanceof NotCompatibleError) {
-      console.error('not compatible ' + keyLine);
-    } else if (e instanceof NotModifiedError) {
-      console.error('not modified ' + keyLine);
-    } else if (e instanceof NotAllowFirstAction) {
-      console.error('not allow first ' + keyLine);
-    } else if (e instanceof NotAllowFirstAction) {
-      console.error('not action complete' + keyLine);
-    } else {
-      console.error('違うエラー ' + keyLine);
+  const keyLine = executeActions.map((v) => v.keys.join('')).join(' ');
+  const testCase = [
+    ['one |two three'],
+    ['zero one|TwoThree four', 'five'],
+    ['abc def', '', 'abc ab|c', 'abc abc', '', 'abc def'],
+  ];
+  for (let i = 0; i < testCase.length; i++) {
+    try {
+      const res = await executeTest({
+        start: testCase[i],
+        actions: executeActions,
+      });
+
+      console.log('done ' + keyLine);
+      executeResultAll.result.push(res);
+    } catch (e) {
+      if (e instanceof EditorNotActiveError) {
+        console.error('editor not active');
+        await cleanUpWorkspace();
+        await setupWorkspace();
+        // もう一度実行
+        i--;
+        continue;
+      } else if (e instanceof NotCompatibleError) {
+        console.error('not compatible ' + keyLine);
+      } else if (e instanceof NotModifiedError) {
+        console.error('not modified ' + keyLine);
+      } else if (e instanceof NotAllowFirstAction) {
+        console.error('not allow first ' + keyLine);
+      } else if (e instanceof NotAllowFirstAction) {
+        console.error('not action complete' + keyLine);
+      } else {
+        console.error('違うエラー ' + keyLine);
+      }
+      return undefined;
     }
   }
-  return undefined;
+  return executeResultAll;
 }
 
 async function preprocessSingleAction(allActions: ExecuteAction[]) {
-  const resultSingle: ExecuteResult[] = [];
+  const resultSingle: ExecuteResultAll[] = [];
   for (let i = 0; i < allActions.length; i++) {
     const res = await executeTestWrapper([allActions[i]]);
     if (res) {
@@ -104,7 +118,7 @@ async function preprocessDoubleAction(
 ) {
   for (let i = startIdx; i < endIdx; i++) {
     const startTimeMs = new Date().getTime();
-    const resultSingle: ExecuteResult[] = [];
+    const resultSingle: ExecuteResultAll[] = [];
     if (allActions[i].skipDoubleAction) {
       console.error('skip double action ' + allActions[i].keys);
       continue;

@@ -2,31 +2,34 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import {
   DOUBLE_ACTION_RES_FILE,
-  ExecuteResult,
+  ExecuteResultAll,
+  ExecuteResultSingle,
   logTest,
   logTestReset,
   SINGLE_ACTION_RES_FILE,
 } from './const';
 
-export interface ExecuteResultKey {
+export type ExecuteResultKey = {
   text: string;
   cursorLine: number;
   cursorCharacter: number;
   mode: string;
-}
+}[];
 
 export default async function preprocess2() {
-  const doubleActionRes = await readDoubleActionRes();
-  const singleActionRes = await readSingleActionRes();
+  const doubleActionRes = await readActionRes(DOUBLE_ACTION_RES_FILE);
+  const singleActionRes = await readActionRes(SINGLE_ACTION_RES_FILE);
 
   const resMap = new Map<string, string[][]>();
   for (const v of doubleActionRes) {
-    const resultkey: ExecuteResultKey = {
-      text: v.text,
-      cursorCharacter: v.position.character,
-      cursorLine: v.position.line,
-      mode: v.mode,
-    };
+    const resultkey: ExecuteResultKey = v.result.map((v) => {
+      return {
+        text: v.text,
+        cursorCharacter: v.position.character,
+        cursorLine: v.position.line,
+        mode: v.mode,
+      };
+    });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
       target.push(v.actionKeys);
@@ -36,12 +39,14 @@ export default async function preprocess2() {
   }
 
   for (const v of singleActionRes) {
-    const resultkey: ExecuteResultKey = {
-      text: v.text,
-      cursorCharacter: v.position.character,
-      cursorLine: v.position.line,
-      mode: v.mode,
-    };
+    const resultkey: ExecuteResultKey = v.result.map((v) => {
+      return {
+        text: v.text,
+        cursorCharacter: v.position.character,
+        cursorLine: v.position.line,
+        mode: v.mode,
+      };
+    });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
       target.push(v.actionKeys);
@@ -66,6 +71,20 @@ export default async function preprocess2() {
   }
 }
 
+async function readActionRes(filename: string) {
+  const stream = fs.createReadStream(filename, {
+    encoding: 'utf8',
+    highWaterMark: 1024,
+  });
+  const reader = readline.createInterface({ input: stream });
+  const res = [];
+  for await (const line of reader) {
+    const obj = JSON.parse(line) as ExecuteResultAll[];
+    res.push(...obj);
+  }
+  return res;
+}
+
 async function readDoubleActionRes() {
   const stream = fs.createReadStream(DOUBLE_ACTION_RES_FILE, {
     encoding: 'utf8',
@@ -74,7 +93,7 @@ async function readDoubleActionRes() {
   const reader = readline.createInterface({ input: stream });
   const res = [];
   for await (const line of reader) {
-    const obj = JSON.parse(line) as ExecuteResult[];
+    const obj = JSON.parse(line) as ExecuteResultSingle[];
     res.push(...obj);
   }
   return res;
@@ -88,7 +107,7 @@ async function readSingleActionRes() {
   const reader = readline.createInterface({ input: stream });
   const res = [];
   for await (const line of reader) {
-    const obj = JSON.parse(line) as ExecuteResult[];
+    const obj = JSON.parse(line) as ExecuteResultSingle[];
     res.push(...obj);
   }
   return res;

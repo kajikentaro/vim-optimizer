@@ -28,11 +28,15 @@ export async function logTest(text: string) {
   await fs.appendFile(TEST_FILE, '\n');
 }
 
-export interface ExecuteResult {
-  actionKeys: string[];
+export interface ExecuteResultSingle {
   text: string;
   position: Position;
   mode: string;
+}
+
+export interface ExecuteResultAll {
+  actionKeys: string[];
+  result: ExecuteResultSingle[];
 }
 
 export interface ExecuteAction {

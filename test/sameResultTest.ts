@@ -9,7 +9,7 @@ import { Mode } from '../src/mode/mode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { Register } from '../src/register/register';
 import { globalState } from '../src/state/globalState';
-import { ExecuteAction, ExecuteResult } from './const';
+import { ExecuteAction, ExecuteResultSingle } from './const';
 
 interface SameResultTestObject {
   config?: Partial<IConfiguration>;
@@ -149,7 +149,7 @@ function getResultObject(modeHandler: ModeHandler): MonitoredResult {
   return { text, position, mode };
 }
 
-export async function executeTest(testObj: SameResultTestObject): Promise<ExecuteResult> {
+export async function executeTest(testObj: SameResultTestObject): Promise<ExecuteResultSingle> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, new EditorNotActiveError('Expected an active editor'));
 
@@ -225,7 +225,6 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
   }
 
   return {
-    actionKeys: testObj.actions.map((v) => v.keys).flat(),
     ...result,
   };
 }

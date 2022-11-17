@@ -62,6 +62,7 @@ async function executeTestWrapper(
     ['one |two three'],
     ['zero one|TwoThree four', 'five'],
     ['abc def', '', 'abc ab|c', 'abc abc', '', 'abc def'],
+    ['(', '<div><a>[int main(vo|id)]</a></div>', ')'],
   ];
   for (let i = 0; i < testCase.length; i++) {
     try {

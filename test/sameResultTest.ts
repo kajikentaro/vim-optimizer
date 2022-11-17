@@ -118,20 +118,33 @@ interface MonitoredResult {
   mode: string;
 }
 
+// 操作同一性テストのためのエラー
+export class SameResultTestError extends Error {}
+
 // 連続して使用できない操作の場合のエラー(d -> y など)
-export class NotCompatibleError extends Error {}
+export class NotCompatibleError extends SameResultTestError {
+  override message = 'Not compatible action';
+}
 
 // エディターが開いていない場合のエラー(:q の後のテストなど)
-export class EditorNotActiveError extends Error {}
+export class EditorNotActiveError extends SameResultTestError {
+  override message = 'Editor not active';
+}
 
 // アクションを実行しても変わらない場合のエラー
-export class NotModifiedError extends Error {}
+export class NotModifiedError extends SameResultTestError {
+  override message = 'Not modified';
+}
 
 // iw, a) など 最初に実行してはいけないものを実行した場合のエラー
-export class NotAllowFirstAction extends Error {}
+export class NotAllowFirstAction extends SameResultTestError {
+  override message = 'Not allow to run as first action';
+}
 
-// アクションが途中で終了してしまった場合のエラー
-export class NotActionComplete extends Error {}
+// アクションの途中で終了してしまった場合のエラー
+export class NotActionComplete extends SameResultTestError {
+  override message = 'Not action complete';
+}
 
 function isSameResult(a: MonitoredResult, b: MonitoredResult) {
   return (

@@ -1,13 +1,7 @@
 import { getAllActions } from '../src/actions/base';
 import { ExecuteAction, ExecuteResultAll, logA, logB, logReset } from './const';
 import { createUnreachableActionTree } from './createUnreachableActionTree';
-import {
-  EditorNotActiveError,
-  executeTest,
-  NotAllowFirstAction,
-  NotCompatibleError,
-  NotModifiedError,
-} from './sameResultTest';
+import { EditorNotActiveError, executeTest, SameResultTestError } from './sameResultTest';
 import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
@@ -70,8 +64,6 @@ async function executeTestWrapper(
         start: testCase[i],
         actions: executeActions,
       });
-
-      console.log('done ' + keyLine);
       executeResultAll.result.push(res);
     } catch (e) {
       if (e instanceof EditorNotActiveError) {
@@ -81,19 +73,14 @@ async function executeTestWrapper(
         // もう一度実行
         i--;
         continue;
-      } else if (e instanceof NotCompatibleError) {
-        console.error('not compatible ' + keyLine);
-      } else if (e instanceof NotModifiedError) {
-        console.error('not modified ' + keyLine);
-      } else if (e instanceof NotAllowFirstAction) {
-        console.error('not allow first ' + keyLine);
-      } else if (e instanceof NotAllowFirstAction) {
-        console.error('not action complete' + keyLine);
+      } else if (e instanceof SameResultTestError) {
+        console.error(e.message + ' ' + keyLine);
       } else {
-        console.error('違うエラー ' + keyLine);
+        console.error('その他のエラー ' + e.message + ' ' + keyLine);
       }
       return undefined;
     }
+    console.log('done ' + keyLine);
   }
   return executeResultAll;
 }

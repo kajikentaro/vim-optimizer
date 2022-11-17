@@ -8,20 +8,20 @@ import {
   SINGLE_ACTION_RES_FILE,
 } from './const';
 
-export type ExecuteResultKey = {
+export type ExecuteResultKey = Array<{
   text: string;
   cursorLine: number;
   cursorCharacter: number;
   mode: string;
-}[];
+}>;
 
 export default async function preprocess2() {
   const doubleActionRes = await readActionRes(DOUBLE_ACTION_RES_FILE);
   const singleActionRes = await readActionRes(SINGLE_ACTION_RES_FILE);
 
   const resMap = new Map<string, string[][]>();
-  for (const v of doubleActionRes) {
-    const resultkey: ExecuteResultKey = v.result.map((v) => {
+  for (const actionRes of doubleActionRes) {
+    const resultkey: ExecuteResultKey = actionRes.result.map((v) => {
       return {
         text: v.text,
         cursorCharacter: v.position.character,
@@ -31,14 +31,14 @@ export default async function preprocess2() {
     });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
-      target.push(v.actionKeys);
+      target.push(actionRes.actionKeys);
     } else {
-      resMap.set(JSON.stringify(resultkey), [v.actionKeys]);
+      resMap.set(JSON.stringify(resultkey), [actionRes.actionKeys]);
     }
   }
 
-  for (const v of singleActionRes) {
-    const resultkey: ExecuteResultKey = v.result.map((v) => {
+  for (const actionRes of singleActionRes) {
+    const resultkey: ExecuteResultKey = actionRes.result.map((v) => {
       return {
         text: v.text,
         cursorCharacter: v.position.character,
@@ -48,9 +48,9 @@ export default async function preprocess2() {
     });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
-      target.push(v.actionKeys);
+      target.push(actionRes.actionKeys);
     } else {
-      resMap.set(JSON.stringify(resultkey), [v.actionKeys]);
+      resMap.set(JSON.stringify(resultkey), [actionRes.actionKeys]);
     }
   }
 
@@ -76,10 +76,15 @@ async function readActionRes(filename: string) {
     highWaterMark: 1024,
   });
   const reader = readline.createInterface({ input: stream });
-  const res = [];
-  for await (const line of reader) {
-    const obj = JSON.parse(line) as ExecuteResultAll[];
-    res.push(...obj);
-  }
-  return res;
+  const executeResult = await new Promise<ExecuteResultAll[]>((resolve) => {
+    const res: ExecuteResultAll[] = [];
+    reader.on('line', (v) => {
+      const obj = JSON.parse(v) as ExecuteResultAll[];
+      res.push(...obj);
+    });
+    reader.on('close', () => {
+      resolve(res);
+    });
+  });
+  return executeResult;
 }

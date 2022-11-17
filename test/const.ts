@@ -63,7 +63,7 @@ export async function writeUnreachableActionCache(executeActions: ExecuteAction[
   await fs.writeFile(UNREACHABLE_ACTION_CACHE_FILE, JSON.stringify(cache));
 }
 
-export type UnreachableActionCache = { keys: string[]; isBanFirstAction: boolean }[];
+export type UnreachableActionCache = Array<{ keys: string[]; isBanFirstAction: boolean }>;
 
 export interface ExecuteResultSingle {
   text: string;

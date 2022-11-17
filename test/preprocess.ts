@@ -38,7 +38,7 @@ function getFilterdAllActions(): ExecuteAction[] {
         // どれか一つが単純だった場合に追加して終了
         simpleActions.push({
           action,
-          keys: keys,
+          keys,
           isBanFirstAction: false,
           skipDoubleAction: false,
         });
@@ -145,11 +145,13 @@ export async function preprocess() {
   let allActions = getFilterdAllActions();
   await setupWorkspace(configuration);
 
-  const startIdx = parseInt(process.env.START || '0');
-  const endIdx = parseInt(process.env.END || allActions.length + '');
+  const startIdx = parseInt(process.env.START || '0', 10);
+  const endIdx = parseInt(process.env.END || allActions.length + '', 10);
 
   allActions = await createUnreachableActionTree(allActions);
-  startIdx === 0 && (await preprocessSingleAction(allActions));
+  if (startIdx === 0) {
+    await preprocessSingleAction(allActions);
+  }
   await preprocessDoubleAction(allActions, startIdx, endIdx);
 
   console.log('done preprocessing');

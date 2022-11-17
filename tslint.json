@@ -10,6 +10,7 @@
     "no-return-await": true,
     "no-switch-case-fall-through": true,
     "no-unnecessary-type-assertion": true,
-    "prefer-const": { "options": { "destructuring": "all" } }
+    "prefer-const": { "options": { "destructuring": "all" } },
+    "prefer-for-of": false
   }
 }

@@ -180,6 +180,7 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
   Register.clearAllRegisters();
 
   let result = getResultObject(modeHandler);
+  const initialResult = { ...result };
   for (let i = 0; i < testObj.actions.length; i++) {
     const action = testObj.actions[i];
 
@@ -222,6 +223,11 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
     modeHandler.vimState.recordedState.actionsRun.length !== 0
   ) {
     throw new NotActionComplete();
+  }
+
+  // 最初と同じになってしまった場合
+  if (isSameResult(result, initialResult)) {
+    throw new NotModifiedError();
   }
 
   return {

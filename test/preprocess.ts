@@ -57,6 +57,7 @@ async function executeTestWrapper(
     ['zero one|TwoThree four', 'five'],
     ['abc def', '', 'abc ab|c', 'abc abc', '', 'abc def'],
     ['(', '<div><a>[int main(vo|id)]</a></div>', ')'],
+    ['def hoge():', '  for |i in range(5):', '    print(i)', '  return 0'],
   ];
   for (let i = 0; i < testCase.length; i++) {
     try {
@@ -80,8 +81,8 @@ async function executeTestWrapper(
       }
       return undefined;
     }
-    console.log('done ' + keyLine);
   }
+  console.log('done ' + keyLine);
   return executeResultAll;
 }
 

@@ -1,4 +1,3 @@
-import { assert } from 'console';
 import * as fs from 'fs/promises';
 import { BaseAction } from 'src/actions/base';
 import { Position } from 'vscode';
@@ -41,9 +40,13 @@ export async function readUnreachableActionCache(executeActions: ExecuteAction[]
 
     // 同じアクションを指しているか確かめる
     for (let i = 0; i < cache.length; i++) {
-      assert(cache[i].keys.length === executeActions[i].keys.length);
+      if (cache[i].keys.length !== executeActions[i].keys.length) {
+        throw new Error('到達不可アクションのキャッシュの数が異なっています');
+      }
       for (let j = 0; j < cache.length; j++) {
-        assert(cache[i][j] === executeActions[i].keys[j]);
+        if (cache[i].keys[j] !== executeActions[i].keys[j]) {
+          throw new Error('到達不可アクションのキーの順番が異なります');
+        }
       }
     }
 

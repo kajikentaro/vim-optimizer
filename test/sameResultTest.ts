@@ -180,7 +180,8 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
       testObj.start.join('\n').replace('|', '')
     );
   });
-  await editor.document.save();
+  // TODO 様子見
+  // await editor.document.save();
   editor.selections = [new vscode.Selection(helper.startPosition, helper.startPosition)];
 
   // Generate a brand new ModeHandler for this editor

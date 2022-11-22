@@ -1,47 +1,6 @@
-import { getAllActions } from '../src/actions/base';
-import { ExecuteAction, ExecuteResultAll, logA, logB, logReset } from './const';
-import { createUnreachableActionTree } from './createUnreachableActionTree';
+import { ExecuteAction, ExecuteResultAll, logA, logB } from './const';
 import { EditorNotActiveError, executeTest, SameResultTestError } from './sameResultTest';
-import { Configuration } from './testConfiguration';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
-
-function getFilterdAllActions(): ExecuteAction[] {
-  const allActions = getAllActions();
-
-  const simpleActions: ExecuteAction[] = [];
-  for (const action of allActions) {
-    // 2Dと3Dの物があるので、3Dに統一する
-    let checkingKeys: string[][];
-    if (Array.isArray(action.keys[0])) {
-      checkingKeys = action.keys as string[][];
-    } else {
-      checkingKeys = [action.keys as string[]];
-    }
-
-    // キーリストのどれか一つが単純だった場合はsimpleActionsに追加
-    for (const keys of checkingKeys) {
-      let isOk = true;
-      for (const key of keys) {
-        // 単純なキー入力のみの場合はOK
-        if (key.length >= 2 || key === 'q') {
-          isOk = false;
-          break;
-        }
-      }
-      if (isOk) {
-        // どれか一つが単純だった場合に追加して終了
-        simpleActions.push({
-          action,
-          keys,
-          isBanFirstAction: false,
-          skipDoubleAction: false,
-        });
-        break;
-      }
-    }
-  }
-  return simpleActions;
-}
 
 async function executeTestWrapper(
   executeActions: ExecuteAction[]
@@ -124,24 +83,14 @@ async function preprocessDoubleAction(
   }
 }
 
-export async function preprocess() {
-  logReset();
-  const configuration = new Configuration();
-  configuration.tabstop = 4;
-  configuration.expandtab = false;
-
-  // 前処理(キー2つ)
-  let allActions = getFilterdAllActions();
-  await setupWorkspace(configuration);
+export async function preprocess(allActions: ExecuteAction[]) {
+  await setupWorkspace();
 
   const startIdx = parseInt(process.env.START || '0', 10);
   const endIdx = parseInt(process.env.END || allActions.length + '', 10);
 
-  allActions = await createUnreachableActionTree(allActions);
   if (startIdx === 0) {
     await preprocessSingleAction(allActions);
   }
   await preprocessDoubleAction(allActions, startIdx, endIdx);
-
-  console.log('done preprocessing');
 }

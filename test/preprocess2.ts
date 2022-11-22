@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
 import {
+  ActionCache,
+  AllTestResult,
   DOUBLE_ACTION_RES_FILE,
-  ExecuteResultAll,
   logTest,
   logTestReset,
   SINGLE_ACTION_RES_FILE,
@@ -19,7 +20,7 @@ export default async function preprocess2() {
   const doubleActionRes = await readActionRes(DOUBLE_ACTION_RES_FILE);
   const singleActionRes = await readActionRes(SINGLE_ACTION_RES_FILE);
 
-  const resMap = new Map<string, string[][]>();
+  const resMap = new Map<string, ActionCache[][]>();
   for (const actionRes of doubleActionRes) {
     const resultkey: ExecuteResultKey = actionRes.result.map((v) => {
       return {
@@ -31,9 +32,9 @@ export default async function preprocess2() {
     });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
-      target.push(actionRes.actionKeys);
+      target.push(actionRes.actionCache);
     } else {
-      resMap.set(JSON.stringify(resultkey), [actionRes.actionKeys]);
+      resMap.set(JSON.stringify(resultkey), [actionRes.actionCache]);
     }
   }
 
@@ -48,9 +49,9 @@ export default async function preprocess2() {
     });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
-      target.push(actionRes.actionKeys);
+      target.push(actionRes.actionCache);
     } else {
-      resMap.set(JSON.stringify(resultkey), [actionRes.actionKeys]);
+      resMap.set(JSON.stringify(resultkey), [actionRes.actionCache]);
     }
   }
 
@@ -60,10 +61,9 @@ export default async function preprocess2() {
     i++;
     if (v.length === 1) continue;
     let res = k + '\n';
-    let j = 0;
     for (const a of v) {
-      res += a.join('').replace(/\n/, '\\n') + '\n';
-      j++;
+      res += a.map((v) => v.pressKeys.join('').replace(/\n/, '\\n')).join(' ') + '\n';
+      res += a.map((v) => v.actionName).join(' ') + '\n';
     }
     res += '\n';
     logTest(res);
@@ -76,10 +76,10 @@ async function readActionRes(filename: string) {
     highWaterMark: 1024,
   });
   const reader = readline.createInterface({ input: stream });
-  const executeResult = await new Promise<ExecuteResultAll[]>((resolve) => {
-    const res: ExecuteResultAll[] = [];
+  const executeResult = await new Promise<AllTestResult[]>((resolve) => {
+    const res: AllTestResult[] = [];
     reader.on('line', (v) => {
-      const obj = JSON.parse(v) as ExecuteResultAll[];
+      const obj = JSON.parse(v) as AllTestResult[];
       res.push(...obj);
     });
     reader.on('close', () => {

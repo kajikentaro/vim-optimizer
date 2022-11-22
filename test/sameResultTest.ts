@@ -9,7 +9,7 @@ import { Mode } from '../src/mode/mode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { Register } from '../src/register/register';
 import { globalState } from '../src/state/globalState';
-import { ExecuteAction, ExecuteResultSingle } from './const';
+import { ExecuteAction, SingleTestResult } from './const';
 
 interface SameResultTestObject {
   config?: Partial<IConfiguration>;
@@ -162,7 +162,7 @@ function getResultObject(modeHandler: ModeHandler): MonitoredResult {
   return { text, position, mode };
 }
 
-export async function executeTest(testObj: SameResultTestObject): Promise<ExecuteResultSingle> {
+export async function executeTest(testObj: SameResultTestObject): Promise<SingleTestResult> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, new EditorNotActiveError('Expected an active editor'));
 
@@ -202,11 +202,11 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Execut
       throw new NotAllowFirstAction();
     }
 
-    if (action.action.doesActionApply(modeHandler.vimState, action.keys)) {
+    if (action.action.doesActionApply(modeHandler.vimState, action.actionKeys)) {
       // from handleKeyEvent
       modeHandler.vimState.cursorsInitialState = modeHandler.vimState.cursors;
 
-      await modeHandler.myHandleKeyAsAnAction(action.action, action.keys);
+      await modeHandler.myHandleKeyAsAnAction(action.action, action.actionKeys);
     } else if (
       action.action.couldActionApply(
         modeHandler.vimState,

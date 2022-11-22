@@ -1,16 +1,23 @@
-import { ExecuteAction, ExecuteResultAll, logA, logB } from './const';
+import {
+  AllTestResult,
+  ExecuteAction,
+  executeActionToActionCache,
+  logA,
+  logB,
+  logReset,
+} from './const';
 import { EditorNotActiveError, executeTest, SameResultTestError } from './sameResultTest';
 import { cleanUpWorkspace, setupWorkspace } from './testUtils';
 
 async function executeTestWrapper(
   executeActions: ExecuteAction[]
-): Promise<ExecuteResultAll | undefined> {
-  const executeResultAll: ExecuteResultAll = {
-    actionKeys: executeActions.map((v) => v.keys).flat(),
+): Promise<AllTestResult | undefined> {
+  const executeResultAll: AllTestResult = {
+    actionCache: executeActions.map((v) => executeActionToActionCache(v)),
     result: [],
   };
 
-  const keyLine = executeActions.map((v) => v.keys.join('')).join(' ');
+  const keyLine = executeActions.map((v) => v.actionKeys.join('')).join(' ');
   const testCase = [
     ['one |two three'],
     ['zero one|TwoThree four', 'five'],
@@ -46,7 +53,7 @@ async function executeTestWrapper(
 }
 
 async function preprocessSingleAction(allActions: ExecuteAction[]) {
-  const resultSingle: ExecuteResultAll[] = [];
+  const resultSingle: AllTestResult[] = [];
   for (let i = 0; i < allActions.length; i++) {
     const res = await executeTestWrapper([allActions[i]]);
     if (res) {
@@ -66,9 +73,9 @@ async function preprocessDoubleAction(
 ) {
   for (let i = startIdx; i < endIdx; i++) {
     const startTimeMs = new Date().getTime();
-    const resultSingle: ExecuteResultAll[] = [];
+    const resultSingle: AllTestResult[] = [];
     if (allActions[i].skipDoubleAction) {
-      console.error('skip double action ' + allActions[i].keys);
+      console.error('skip double action ' + allActions[i].actionKeys);
       continue;
     }
     for (let j = 0; j < allActions.length; j++) {
@@ -84,6 +91,7 @@ async function preprocessDoubleAction(
 }
 
 export async function preprocess(allActions: ExecuteAction[]) {
+  logReset();
   await setupWorkspace();
 
   const startIdx = parseInt(process.env.START || '0', 10);

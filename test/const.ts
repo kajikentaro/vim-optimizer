@@ -40,11 +40,11 @@ export async function readUnreachableActionCache(executeActions: ExecuteAction[]
 
     // 同じアクションを指しているか確かめる
     for (let i = 0; i < cache.length; i++) {
-      if (cache[i].keys.length !== executeActions[i].keys.length) {
+      if (cache[i].pressKeys.length !== executeActions[i].actionKeys.length) {
         throw new Error('到達不可アクションのキャッシュの数が異なっています');
       }
       for (let j = 0; j < cache.length; j++) {
-        if (cache[i].keys[j] !== executeActions[i].keys[j]) {
+        if (cache[i].pressKeys[j] !== executeActions[i].actionKeys[j]) {
           throw new Error('到達不可アクションのキーの順番が異なります');
         }
       }
@@ -61,27 +61,36 @@ export async function readUnreachableActionCache(executeActions: ExecuteAction[]
 
 export async function writeUnreachableActionCache(executeActions: ExecuteAction[]) {
   const cache: UnreachableActionCache = executeActions.map((v) => {
-    return { isBanFirstAction: v.isBanFirstAction, keys: v.keys };
+    return { isBanFirstAction: v.isBanFirstAction, pressKeys: v.actionKeys };
   });
   await fs.writeFile(UNREACHABLE_ACTION_CACHE_FILE, JSON.stringify(cache));
 }
 
-export type UnreachableActionCache = Array<{ keys: string[]; isBanFirstAction: boolean }>;
+export type UnreachableActionCache = Array<{ pressKeys: string[]; isBanFirstAction: boolean }>;
 
-export interface ExecuteResultSingle {
+export interface SingleTestResult {
   text: string;
   position: Position;
   mode: string;
 }
 
-export interface ExecuteResultAll {
-  actionKeys: string[];
-  result: ExecuteResultSingle[];
+export interface ActionCache {
+  pressKeys: string[];
+  actionName: string;
+}
+
+export function executeActionToActionCache(action: ExecuteAction): ActionCache {
+  return { pressKeys: action.actionKeys, actionName: action.action.constructor.name };
+}
+
+export interface AllTestResult {
+  actionCache: ActionCache[];
+  result: SingleTestResult[];
 }
 
 export interface ExecuteAction {
   action: BaseAction;
-  keys: string[];
+  actionKeys: string[];
   isBanFirstAction: boolean;
   skipDoubleAction: boolean;
 }

@@ -58,7 +58,7 @@ function getFilterdAllActions(): ExecuteAction[] {
         // どれか一つが単純だった場合に追加して終了
         simpleActions.push({
           action,
-          keys,
+          actionKeys: keys,
           isBanFirstAction: false,
           skipDoubleAction: false,
         });
@@ -88,7 +88,7 @@ async function createUnreachableActionTree(allActions: ExecuteAction[]) {
   // 木を作る
   const firstNode = new Node('FIRST');
   for (let i = 0; i < allActions.length; i++) {
-    const actionKey = allActions[i].keys;
+    const actionKey = allActions[i].actionKeys;
     let now = firstNode.getNext(actionKey[0]);
     for (let j = 0; j < actionKey.length; j++) {
       if (j === 0) continue;
@@ -136,7 +136,7 @@ async function examineDoesActionApply(action: ExecuteAction): Promise<boolean> {
   ModeHandlerMap.clear();
   const [modeHandler, _] = await ModeHandlerMap.getOrCreate(editor);
 
-  if (action.action.doesActionApply(modeHandler.vimState, action.keys)) {
+  if (action.action.doesActionApply(modeHandler.vimState, action.actionKeys)) {
     return true;
   }
   return false;

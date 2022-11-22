@@ -74,17 +74,19 @@ export interface SingleTestResult {
   mode: string;
 }
 
-export interface ActionCache {
+export type CacheActionChain = CacheAction[];
+
+export interface CacheAction {
   pressKeys: string[];
   actionName: string;
 }
 
-export function executeActionToActionCache(action: ExecuteAction): ActionCache {
+export function executeActionToActionCache(action: ExecuteAction): CacheAction {
   return { pressKeys: action.actionKeys, actionName: action.action.constructor.name };
 }
 
 export interface AllTestResult {
-  actionCache: ActionCache[];
+  cacheAction: CacheAction[];
   result: SingleTestResult[];
 }
 

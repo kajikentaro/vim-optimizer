@@ -13,7 +13,7 @@ async function executeTestWrapper(
   executeActions: ExecuteAction[]
 ): Promise<AllTestResult | undefined> {
   const executeResultAll: AllTestResult = {
-    actionCache: executeActions.map((v) => executeActionToActionCache(v)),
+    cacheAction: executeActions.map((v) => executeActionToActionCache(v)),
     result: [],
   };
 

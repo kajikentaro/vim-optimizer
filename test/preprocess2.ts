@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
 import {
-  ActionCache,
   AllTestResult,
+  CacheActionChain,
   DOUBLE_ACTION_RES_FILE,
   logTest,
   logTestReset,
@@ -20,7 +20,7 @@ export default async function preprocess2() {
   const doubleActionRes = await readActionRes(DOUBLE_ACTION_RES_FILE);
   const singleActionRes = await readActionRes(SINGLE_ACTION_RES_FILE);
 
-  const resMap = new Map<string, ActionCache[][]>();
+  const resMap = new Map<string, CacheActionChain[]>();
   for (const actionRes of doubleActionRes) {
     const resultkey: ExecuteResultKey = actionRes.result.map((v) => {
       return {
@@ -32,9 +32,9 @@ export default async function preprocess2() {
     });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
-      target.push(actionRes.actionCache);
+      target.push(actionRes.cacheAction);
     } else {
-      resMap.set(JSON.stringify(resultkey), [actionRes.actionCache]);
+      resMap.set(JSON.stringify(resultkey), [actionRes.cacheAction]);
     }
   }
 
@@ -49,25 +49,39 @@ export default async function preprocess2() {
     });
     const target = resMap.get(JSON.stringify(resultkey));
     if (target) {
-      target.push(actionRes.actionCache);
+      target.push(actionRes.cacheAction);
     } else {
-      resMap.set(JSON.stringify(resultkey), [actionRes.actionCache]);
+      resMap.set(JSON.stringify(resultkey), [actionRes.cacheAction]);
+    }
+  }
+
+  const recommendAction = new Map<CacheActionChain, CacheActionChain>();
+  const tmp = [];
+  for (const [k, v] of resMap) {
+    if (v.length === 1) continue;
+
+    // キーの押す回数が最も少ないものを探す
+    let minKeyLength = Infinity;
+    let minIdx = -1;
+    for (let i = 0; i < v.length; i++) {
+      const cacheActionChain = v[i];
+      const keyLength = cacheActionChain.reduce((sum, v) => sum + v.pressKeys.length, 0);
+      if (keyLength < minKeyLength) {
+        minKeyLength = keyLength;
+        minIdx = i;
+      }
+    }
+
+    for (const cacheActionChain of v) {
+      recommendAction.set(cacheActionChain, v[minIdx]);
+      tmp.push([cacheActionChain, v[minIdx]]);
     }
   }
 
   logTestReset();
-  let i = 0;
-  for (const [k, v] of resMap) {
-    i++;
-    if (v.length === 1) continue;
-    let res = k + '\n';
-    for (const a of v) {
-      res += a.map((v) => v.pressKeys.join('').replace(/\n/, '\\n')).join(' ') + '\n';
-      res += a.map((v) => v.actionName).join(' ') + '\n';
-    }
-    res += '\n';
-    logTest(res);
-  }
+  await logTest(JSON.stringify(tmp));
+
+  // return recommendAction
 }
 
 async function readActionRes(filename: string) {

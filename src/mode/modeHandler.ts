@@ -16,6 +16,7 @@ import { Jump } from '../jumps/jump';
 import { globalState } from '../state/globalState';
 import { RemapState } from '../state/remapState';
 import { StatusBar } from '../statusBar';
+import { mySuggestOptimalAction } from '../suggest/suggest';
 import { executeTransformations, IModeHandler } from '../transformations/execute';
 import { isTextTransformation } from '../transformations/transformations';
 import { getDecorationsForSearchMatchRanges, SearchDecorations } from '../util/decorationUtils';
@@ -720,6 +721,8 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
 
         return false;
     }
+
+    mySuggestOptimalAction(action.constructor.name, recordedState.actionKeys);
 
     if (
       !this.remapState.remapUsedACharacter &&

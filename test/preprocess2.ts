@@ -1,11 +1,10 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
+import { CacheActionChain } from '../src/suggest/suggest';
 import {
   AllTestResult,
-  CacheActionChain,
   DOUBLE_ACTION_RES_FILE,
-  logTest,
-  logTestReset,
+  saveRecommendMap,
   SINGLE_ACTION_RES_FILE,
 } from './const';
 
@@ -55,16 +54,15 @@ export default async function preprocess2() {
     }
   }
 
-  const recommendAction = new Map<CacheActionChain, CacheActionChain>();
-  const tmp = [];
-  for (const [k, v] of resMap) {
-    if (v.length === 1) continue;
+  const recommendAction = new Map<string, CacheActionChain>();
+  for (const [k, sameActions] of resMap) {
+    if (sameActions.length === 1) continue;
 
     // キーの押す回数が最も少ないものを探す
     let minKeyLength = Infinity;
     let minIdx = -1;
-    for (let i = 0; i < v.length; i++) {
-      const cacheActionChain = v[i];
+    for (let i = 0; i < sameActions.length; i++) {
+      const cacheActionChain = sameActions[i];
       const keyLength = cacheActionChain.reduce((sum, v) => sum + v.pressKeys.length, 0);
       if (keyLength < minKeyLength) {
         minKeyLength = keyLength;
@@ -72,16 +70,13 @@ export default async function preprocess2() {
       }
     }
 
-    for (const cacheActionChain of v) {
-      recommendAction.set(cacheActionChain, v[minIdx]);
-      tmp.push([cacheActionChain, v[minIdx]]);
+    for (const cacheActionChain of sameActions) {
+      recommendAction.set(JSON.stringify(cacheActionChain), sameActions[minIdx]);
     }
   }
 
-  logTestReset();
-  await logTest(JSON.stringify(tmp));
-
-  // return recommendAction
+  // ファイルに保存
+  await saveRecommendMap(recommendAction);
 }
 
 async function readActionRes(filename: string) {

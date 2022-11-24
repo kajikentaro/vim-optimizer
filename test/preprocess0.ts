@@ -70,7 +70,7 @@ function getFilterdAllActions(): ExecuteAction[] {
 }
 
 export default async function preprocess0() {
-  let pureActions = getFilterdAllActions();
+  const pureActions = getFilterdAllActions();
   const attrActions = await createUnreachableActionTree(pureActions);
   return attrActions;
 }

@@ -1,9 +1,11 @@
 import * as fs from 'fs/promises';
-import { BaseAction } from 'src/actions/base';
 import { Position } from 'vscode';
+import { BaseAction } from '../src/actions/base';
+import { CacheAction, CacheActionChain } from '../src/suggest/suggest';
 export const SINGLE_ACTION_RES_FILE = __dirname + '/SingleAction.txt';
 export const DOUBLE_ACTION_RES_FILE = __dirname + '/DoubleAction.txt';
 export const UNREACHABLE_ACTION_CACHE_FILE = __dirname + '/UnreachableCache.txt';
+export const RECOMMEND_MAP_FILE = __dirname + '/../../src/suggest/suggestMap.json';
 export const TEST_FILE = __dirname + '/test.txt';
 
 export async function logReset() {
@@ -74,13 +76,6 @@ export interface SingleTestResult {
   mode: string;
 }
 
-export type CacheActionChain = CacheAction[];
-
-export interface CacheAction {
-  pressKeys: string[];
-  actionName: string;
-}
-
 export function executeActionToActionCache(action: ExecuteAction): CacheAction {
   return { pressKeys: action.actionKeys, actionName: action.action.constructor.name };
 }
@@ -95,4 +90,13 @@ export interface ExecuteAction {
   actionKeys: string[];
   isBanFirstAction: boolean;
   skipDoubleAction: boolean;
+}
+
+export async function saveRecommendMap(input: Map<string, CacheActionChain>) {
+  const array = [];
+  for (const [k, v] of input) {
+    array.push({ k, v });
+  }
+  const str = JSON.stringify(array);
+  await fs.writeFile(RECOMMEND_MAP_FILE, str);
 }

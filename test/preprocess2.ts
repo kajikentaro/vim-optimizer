@@ -4,6 +4,8 @@ import { CacheActionChain } from '../src/suggest/suggest';
 import {
   AllTestResult,
   DOUBLE_ACTION_RES_FILE,
+  logTest,
+  logTestReset,
   saveRecommendMap,
   SINGLE_ACTION_RES_FILE,
 } from './const';
@@ -55,6 +57,7 @@ export default async function preprocess2() {
   }
 
   const recommendAction = new Map<string, CacheActionChain>();
+  const tmp = [];
   for (const [k, sameActions] of resMap) {
     if (sameActions.length === 1) continue;
 
@@ -71,9 +74,18 @@ export default async function preprocess2() {
     }
 
     for (const cacheActionChain of sameActions) {
+      tmp.push(
+        cacheActionChain.map((v) => v.pressKeys.join('')).join(' ') +
+          ' ### ' +
+          cacheActionChain.map((v) => v.actionName).join(' ')
+      );
       recommendAction.set(JSON.stringify(cacheActionChain), sameActions[minIdx]);
     }
+    tmp.push('\n');
   }
+
+  logTestReset();
+  logTest(tmp.join('\n'));
 
   // ファイルに保存
   await saveRecommendMap(recommendAction);

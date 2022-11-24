@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { Position } from 'vscode';
 import { BaseAction } from '../src/actions/base';
-import { CacheAction, CacheActionChain } from '../src/suggest/suggest';
+import { ActionId, ActionIdChain } from '../src/suggest/suggest';
 export const SINGLE_ACTION_RES_FILE = __dirname + '/SingleAction.txt';
 export const DOUBLE_ACTION_RES_FILE = __dirname + '/DoubleAction.txt';
 export const UNREACHABLE_ACTION_CACHE_FILE = __dirname + '/UnreachableCache.txt';
@@ -76,13 +76,13 @@ export interface SingleTestResult {
   mode: string;
 }
 
-export function executeActionToActionCache(action: ExecuteAction): CacheAction {
+export function executeActionToActionCache(action: ExecuteAction): ActionId {
   return { pressKeys: action.actionKeys, actionName: action.action.constructor.name };
 }
 
 export interface AllTestResult {
-  cacheAction: CacheAction[];
-  result: SingleTestResult[];
+  actionIdChain: ActionIdChain;
+  result: Array<SingleTestResult | null>;
 }
 
 export interface ExecuteAction {
@@ -92,7 +92,7 @@ export interface ExecuteAction {
   skipDoubleAction: boolean;
 }
 
-export async function saveRecommendMap(input: Map<string, CacheActionChain>) {
+export async function saveRecommendMap(input: Map<string, ActionIdChain>) {
   const array = [];
   for (const [k, v] of input) {
     array.push({ k, v });

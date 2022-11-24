@@ -1,21 +1,21 @@
 import * as vscode from 'vscode';
-import * as suggestMapJson from './suggestMap.json';
 
-export type CacheActionChain = CacheAction[];
+export type ActionIdChain = ActionId[];
 
-export interface CacheAction {
+export interface ActionId {
   pressKeys: string[];
   actionName: string;
 }
 
-const history: CacheAction[] = [];
+const history: ActionId[] = [];
 
-let suggestMapCache: undefined | Map<string, CacheActionChain>;
+let suggestMapCache: undefined | Map<string, ActionIdChain>;
 function getSuggestMap() {
   if (typeof suggestMapCache !== 'undefined') {
     return suggestMapCache;
   }
-  suggestMapCache = new Map<string, CacheActionChain>();
+  suggestMapCache = new Map<string, ActionIdChain>();
+  const suggestMapJson = require('./suggestMap.json');
   for (const { k, v } of suggestMapJson) {
     suggestMapCache.set(k, v);
   }
@@ -26,8 +26,9 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
   const suggestMap = getSuggestMap();
   history.push({ pressKeys: actionKey, actionName });
 
-  const target = JSON.stringify(history.slice(-2));
-  const result = suggestMap.get(target);
+  const targetObj: ActionIdChain = history.slice(-2);
+  const targetKey = JSON.stringify(targetObj);
+  const result = suggestMap.get(targetKey);
   if (typeof result === 'undefined') {
     vscode.window.showInformationMessage('not for optimal action');
     return;

@@ -13,7 +13,7 @@ async function executeTestWrapper(
   executeActions: ExecuteAction[]
 ): Promise<AllTestResult | undefined> {
   const executeResultAll: AllTestResult = {
-    cacheAction: executeActions.map((v) => executeActionToActionCache(v)),
+    actionIdChain: executeActions.map((v) => executeActionToActionCache(v)),
     result: [],
   };
 
@@ -25,12 +25,16 @@ async function executeTestWrapper(
     ['(', '<div><a>[int main(vo|id)]</a></div>', ')'],
     ['def hoge():', '  for |i in range(5):', '    print(i)', '  return 0'],
   ];
+  let notModifiedCnt = 0;
   for (let i = 0; i < testCase.length; i++) {
     try {
       const res = await executeTest({
         start: testCase[i],
         actions: executeActions,
       });
+      if (res === null) {
+        notModifiedCnt++;
+      }
       executeResultAll.result.push(res);
     } catch (e) {
       if (e instanceof EditorNotActiveError) {
@@ -47,6 +51,11 @@ async function executeTestWrapper(
       }
       return undefined;
     }
+  }
+  // 全てのテストで変更がなかったら失敗にする
+  if (notModifiedCnt === testCase.length) {
+    console.error('Not modified ' + keyLine);
+    return undefined;
   }
   console.log('done ' + keyLine);
   return executeResultAll;

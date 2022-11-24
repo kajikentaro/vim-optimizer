@@ -131,11 +131,6 @@ export class EditorNotActiveError extends SameResultTestError {
   override message = 'Editor not active';
 }
 
-// アクションを実行しても変わらない場合のエラー
-export class NotModifiedError extends SameResultTestError {
-  override message = 'Not modified';
-}
-
 // iw, a) など 最初に実行してはいけないものを実行した場合のエラー
 export class NotAllowFirstAction extends SameResultTestError {
   override message = 'Not allow to run as first action';
@@ -162,7 +157,9 @@ function getResultObject(modeHandler: ModeHandler): MonitoredResult {
   return { text, position, mode };
 }
 
-export async function executeTest(testObj: SameResultTestObject): Promise<SingleTestResult> {
+// 意味のないアクションが実行された場合は null が返る
+// ex. 先頭行でkを押した場合など
+export async function executeTest(testObj: SameResultTestObject): Promise<SingleTestResult | null> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, new EditorNotActiveError('Expected an active editor'));
 
@@ -224,7 +221,7 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Single
       modeHandler.vimState.recordedState.actionsRun.length === 0 &&
       isSameResult(nowResult, result)
     ) {
-      throw new NotModifiedError();
+      return null;
     }
 
     result = nowResult;
@@ -241,10 +238,8 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Single
 
   // 最初と同じになってしまった場合
   if (isSameResult(result, initialResult)) {
-    throw new NotModifiedError();
+    return null;
   }
 
-  return {
-    ...result,
-  };
+  return { ...result };
 }

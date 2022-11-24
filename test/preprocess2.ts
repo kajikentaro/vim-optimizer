@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
-import { CacheActionChain } from '../src/suggest/suggest';
+import { ActionIdChain } from '../src/suggest/suggest';
 import {
   AllTestResult,
   DOUBLE_ACTION_RES_FILE,
@@ -17,70 +17,88 @@ export type ExecuteResultKey = Array<{
   mode: string;
 }>;
 
+function isSame(a: AllTestResult, b: AllTestResult) {
+  const size = a.result.length;
+  for (let i = 0; i < size; i++) {
+    const ai = a.result[i];
+    const bi = b.result[i];
+    if (ai === null || bi === null) {
+      continue;
+    }
+    if (
+      ai.mode === bi.mode &&
+      ai.position.character === bi.position.character &&
+      ai.position.line === bi.position.line &&
+      ai.text === bi.text
+    ) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 export default async function preprocess2() {
   const doubleActionRes = await readActionRes(DOUBLE_ACTION_RES_FILE);
   const singleActionRes = await readActionRes(SINGLE_ACTION_RES_FILE);
 
-  const resMap = new Map<string, CacheActionChain[]>();
-  for (const actionRes of doubleActionRes) {
-    const resultkey: ExecuteResultKey = actionRes.result.map((v) => {
-      return {
-        text: v.text,
-        cursorCharacter: v.position.character,
-        cursorLine: v.position.line,
-        mode: v.mode,
-      };
-    });
-    const target = resMap.get(JSON.stringify(resultkey));
-    if (target) {
-      target.push(actionRes.cacheAction);
-    } else {
-      resMap.set(JSON.stringify(resultkey), [actionRes.cacheAction]);
+  const actionRes = [...doubleActionRes, ...singleActionRes];
+
+  const actionResSame = [...Array(actionRes.length)].map(() => [] as ActionIdChain[]);
+  for (let ai = 0; ai < actionRes.length; ai++) {
+    const a = actionRes[ai];
+    if (
+      a.actionIdChain.length === 2 &&
+      a.actionIdChain[0].pressKeys[0] === 'k' &&
+      a.actionIdChain[1].pressKeys[0] === 'o'
+    ) {
+      console.log('hoge');
+    }
+    for (const b of actionRes) {
+      if (b.actionIdChain.length === 1 && b.actionIdChain[0].pressKeys[0] === 'O') {
+        console.log('hoge');
+      }
+      if (isSame(a, b)) {
+        actionResSame[ai].push(b.actionIdChain);
+      }
     }
   }
 
-  for (const actionRes of singleActionRes) {
-    const resultkey: ExecuteResultKey = actionRes.result.map((v) => {
-      return {
-        text: v.text,
-        cursorCharacter: v.position.character,
-        cursorLine: v.position.line,
-        mode: v.mode,
-      };
-    });
-    const target = resMap.get(JSON.stringify(resultkey));
-    if (target) {
-      target.push(actionRes.cacheAction);
-    } else {
-      resMap.set(JSON.stringify(resultkey), [actionRes.cacheAction]);
-    }
-  }
-
-  const recommendAction = new Map<string, CacheActionChain>();
+  const recommendAction = new Map<string, ActionIdChain>();
   const tmp = [];
-  for (const [k, sameActions] of resMap) {
+  for (let ai = 0; ai < actionRes.length; ai++) {
+    const sameActions = actionResSame[ai];
+    const mapKey: ActionIdChain = actionRes[ai].actionIdChain;
     if (sameActions.length === 1) continue;
 
     // キーの押す回数が最も少ないものを探す
     let minKeyLength = Infinity;
     let minIdx = -1;
     for (let i = 0; i < sameActions.length; i++) {
-      const cacheActionChain = sameActions[i];
-      const keyLength = cacheActionChain.reduce((sum, v) => sum + v.pressKeys.length, 0);
+      const idChain = sameActions[i];
+      const keyLength = Math.max(
+        idChain.reduce((sum, v) => sum + v.pressKeys.length, 0),
+        idChain.length
+      );
       if (keyLength < minKeyLength) {
         minKeyLength = keyLength;
         minIdx = i;
       }
     }
 
-    for (const cacheActionChain of sameActions) {
-      tmp.push(
-        cacheActionChain.map((v) => v.pressKeys.join('')).join(' ') +
-          ' ### ' +
-          cacheActionChain.map((v) => v.actionName).join(' ')
-      );
-      recommendAction.set(JSON.stringify(cacheActionChain), sameActions[minIdx]);
-    }
+    const mapValue = sameActions[minIdx];
+
+    tmp.push(
+      mapKey.map((v) => v.pressKeys.join('').replace('\n', '\\n')).join(' ') +
+        ' ### ' +
+        mapKey.map((v) => v.actionName).join(' ')
+    );
+    tmp.push(
+      mapValue.map((v) => v.pressKeys.join('').replace('\n', '\\n')).join(' ') +
+        ' ### ' +
+        mapValue.map((v) => v.actionName).join(' ')
+    );
+    recommendAction.set(JSON.stringify(mapKey), sameActions[minIdx]);
     tmp.push('\n');
   }
 

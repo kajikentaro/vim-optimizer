@@ -30,7 +30,17 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
   const targetKey = JSON.stringify(targetObj);
   const result = suggestMap.get(targetKey);
   if (typeof result === 'undefined') {
-    vscode.window.showInformationMessage('not for optimal action');
+    console.error('not found in suggest map');
+    return;
+  }
+  if (targetKey === JSON.stringify(result)) {
+    console.error('target is currently optimal');
+    return;
+  }
+  const targetKeyLength = targetObj.reduce((sum, v) => v.pressKeys.length + sum, 0);
+  const resultKeyLength = result.reduce((sum, v) => v.pressKeys.length + sum, 0);
+  if (targetKeyLength === resultKeyLength) {
+    console.error('target key length is as same as optimal');
     return;
   }
   vscode.window.showInformationMessage(result.map((v) => v.pressKeys.join('')).join(' '));

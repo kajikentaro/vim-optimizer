@@ -22,7 +22,7 @@ async function executeTestWrapper(
     ['one |two three'],
     ['zero one|TwoThree four', 'five'],
     ['abc def', '', 'abc ab|c', 'abc abc', '', 'abc def'],
-    ['(', '<div><a>[int main(vo|id)]</a></div>', ')'],
+    ['(', '  <div>', '    <a>[int main(vo|id)]</a>', '  </div>', ')'],
     ['def hoge():', '  for |i in range(5):', '    print(i)', '  return 0'],
   ];
   let notModifiedCnt = 0;

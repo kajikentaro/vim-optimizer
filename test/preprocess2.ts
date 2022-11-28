@@ -39,43 +39,37 @@ function isSame(a: AllTestResult, b: AllTestResult) {
 }
 
 export default async function preprocess2() {
-  const doubleActionRes = await readActionRes(DOUBLE_ACTION_RES_FILE);
-  const singleActionRes = await readActionRes(SINGLE_ACTION_RES_FILE);
+  const actionRes = [
+    ...(await readActionRes(DOUBLE_ACTION_RES_FILE)),
+    ...(await readActionRes(SINGLE_ACTION_RES_FILE)),
+  ];
 
-  const actionRes = [...doubleActionRes, ...singleActionRes];
+  // 結果を保存するmap
+  const recommendAction = new Map<string, ActionIdChain>();
+  // デバック用
+  const tmp = [];
 
-  const actionResSame = [...Array(actionRes.length)].map(() => [] as ActionIdChain[]);
   for (let ai = 0; ai < actionRes.length; ai++) {
     const a = actionRes[ai];
-    if (
-      a.actionIdChain.length === 2 &&
-      a.actionIdChain[0].pressKeys[0] === 'k' &&
-      a.actionIdChain[1].pressKeys[0] === 'o'
-    ) {
-      console.log('hoge');
-    }
-    for (const b of actionRes) {
-      if (b.actionIdChain.length === 1 && b.actionIdChain[0].pressKeys[0] === 'O') {
-        console.log('hoge');
-      }
-      if (isSame(a, b)) {
-        actionResSame[ai].push(b.actionIdChain);
-      }
-    }
-  }
 
-  const recommendAction = new Map<string, ActionIdChain>();
-  const tmp = [];
-  for (let ai = 0; ai < actionRes.length; ai++) {
-    const sameActions = actionResSame[ai];
-    const mapKey: ActionIdChain = actionRes[ai].actionIdChain;
-    if (sameActions.length === 1) continue;
+    // aと同じものを検索する
+    const sameActionsWithA: ActionIdChain[] = [];
+    for (let bi = 0; bi < actionRes.length; bi++) {
+      if (bi === ai) continue;
+      const b = actionRes[bi];
+      if (isSame(a, b)) {
+        sameActionsWithA.push(b.actionIdChain);
+      }
+    }
+
+    // 見つからなかった場合はスキップ
+    if (sameActionsWithA.length === 0) continue;
 
     // キーの押す回数が最も少ないものを探す
     let minKeyLength = Infinity;
     let minIdx = -1;
-    for (let i = 0; i < sameActions.length; i++) {
-      const idChain = sameActions[i];
+    for (let i = 0; i < sameActionsWithA.length; i++) {
+      const idChain = sameActionsWithA[i];
       const keyLength = Math.max(
         idChain.reduce((sum, v) => sum + v.pressKeys.length, 0),
         idChain.length
@@ -85,9 +79,13 @@ export default async function preprocess2() {
         minIdx = i;
       }
     }
+    const mapValue = sameActionsWithA[minIdx];
 
-    const mapValue = sameActions[minIdx];
+    // 結果をmapに保存する
+    const mapKey: ActionIdChain = actionRes[ai].actionIdChain;
+    recommendAction.set(JSON.stringify(mapKey), sameActionsWithA[minIdx]);
 
+    // デバック用に保存する
     tmp.push(
       mapKey.map((v) => v.pressKeys.join('').replace('\n', '\\n')).join(' ') +
         ' ### ' +
@@ -98,10 +96,10 @@ export default async function preprocess2() {
         ' ### ' +
         mapValue.map((v) => v.actionName).join(' ')
     );
-    recommendAction.set(JSON.stringify(mapKey), sameActions[minIdx]);
     tmp.push('\n');
   }
 
+  // デバック用
   logTestReset();
   logTest(tmp.join('\n'));
 

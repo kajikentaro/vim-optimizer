@@ -6,6 +6,7 @@ import { getAllActions } from '../src/actions/base';
 import { Position } from 'vscode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { ExecuteAction, readUnreachableActionCache, writeUnreachableActionCache } from './const';
+import { setupWorkspace } from './testUtils';
 
 class Node {
   key: string;
@@ -70,6 +71,7 @@ function getFilterdAllActions(): ExecuteAction[] {
 }
 
 export default async function preprocess0() {
+  await setupWorkspace();
   const pureActions = getFilterdAllActions();
   const attrActions = await createUnreachableActionTree(pureActions);
   return attrActions;

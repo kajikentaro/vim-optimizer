@@ -16,7 +16,7 @@ import { Jump } from '../jumps/jump';
 import { globalState } from '../state/globalState';
 import { RemapState } from '../state/remapState';
 import { StatusBar } from '../statusBar';
-import { mySuggestOptimalAction } from '../suggest/suggest';
+import { mySuggestOptimalAction, myTest } from '../suggest/suggest';
 import { executeTransformations, IModeHandler } from '../transformations/execute';
 import { isTextTransformation } from '../transformations/transformations';
 import { getDecorationsForSearchMatchRanges, SearchDecorations } from '../util/decorationUtils';
@@ -401,6 +401,7 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
   }
 
   public async handleKeyEvent(key: string): Promise<void> {
+    myTest();
     const now = Date.now();
     const printableKey = Notation.printableKey(key, configuration.leader);
 

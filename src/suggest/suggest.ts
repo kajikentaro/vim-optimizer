@@ -45,3 +45,8 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
   }
   vscode.window.showInformationMessage(result.map((v) => v.pressKeys.join('')).join(' '));
 }
+
+export async function myTest() {
+  const callWasm = require('./callWasm');
+  console.log(await callWasm.callWasm(1, 3));
+}

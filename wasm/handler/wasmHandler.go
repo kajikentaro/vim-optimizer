@@ -1,7 +1,10 @@
-package main
+package handler
 
 import (
 	"unsafe"
+
+	"github.com/kajikentaro/VSCodeVim/wasm/controller"
+	. "github.com/kajikentaro/VSCodeVim/wasm/model"
 )
 
 var buf [1048576]byte
@@ -10,7 +13,7 @@ var bufSize uint32
 //export wasmHandler
 func wasmHandler() uint32 {
 	optIn := OptimizerInput{originPosition, destinationPosition, editorText}
-	optOut, err := optimize(optIn)
+	optOut, err := controller.Optimize(optIn)
 
 	var res OptimizerOutputJson
 

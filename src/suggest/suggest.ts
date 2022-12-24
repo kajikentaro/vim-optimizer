@@ -56,11 +56,10 @@ export async function myTest() {
       line: 7,
       character: 23,
     },
-    EditorText: 'hogehoge',
+    editorText: 'hogehoge',
   };
-  const optInStr = JSON.stringify(optIn);
 
   const callWasm = require('./callWasm');
-  const optOutStr = await callWasm.callWasm(optInStr);
+  const optOutStr = await callWasm.callWasm(optIn);
   console.log(optOutStr);
 }

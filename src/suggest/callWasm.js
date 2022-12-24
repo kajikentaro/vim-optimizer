@@ -4,7 +4,7 @@ const fs = require('fs');
 
 async function prepareWasm() {}
 
-export async function callWasm(optInStr) {
+export async function callWasm(optIn) {
   const go = new Go();
 
   const obj = await WebAssembly.instantiate(
@@ -13,8 +13,16 @@ export async function callWasm(optInStr) {
   );
   const wasm = obj.instance;
 
-  const [addrIn, lengthIn] = writeBuffer(optInStr, wasm);
-  const addrOut = wasm.exports.wasmHandler(addrIn, lengthIn);
+  // 変数をセット
+  wasm.exports.setOriginPosition(optIn.origin.line, optIn.origin.character);
+  wasm.exports.setDestinationPosition(optIn.destination.line, optIn.destination.character);
+  const [addr, length] = writeBuffer(optIn.editorText, wasm);
+  wasm.exports.setEditorText(addr, length);
+
+  // 最適化開始
+  const addrOut = wasm.exports.wasmHandler();
+
+  // 結果取得
   const lengthOut = wasm.exports.getBufSize();
   const result = readBuffer(addrOut, lengthOut, wasm);
   return result;

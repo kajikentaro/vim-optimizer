@@ -8,11 +8,47 @@ var buf [1048576]byte
 var bufSize uint32
 
 //export wasmHandler
-func wasmHandler(message string) uint32{
-	optimizeResult := optimizeFromJson(message)
-	ptr, size:=stringToPtr(optimizeResult)
+func wasmHandler() uint32 {
+	optIn := OptimizerInput{originPosition, destinationPosition, editorText}
+	optOut, err := optimize(optIn)
+
+	var res OptimizerOutputJson
+
+	if err != nil {
+		res = OptimizerOutputJson{[]Action{}, false, err.Error()}
+	} else {
+		res = OptimizerOutputJson{optOut.Actions, true, ""}
+	}
+
+	optOutStr, _ := res.MarshalJSON()
+
+	ptr, size := stringToPtr(string(optOutStr))
 	bufSize = size
 	return ptr
+}
+
+var destinationPosition Position
+
+//export setDestinationPosition
+func setDestinationPosition(line, character int) {
+	destinationPosition.Line = line
+	destinationPosition.Character = character
+}
+
+var originPosition Position
+
+//export setOriginPosition
+func setOriginPosition(line, character int) {
+	// originPosition.Line = line
+	// originPosition.Character = character
+	originPosition = Position{line, character}
+}
+
+var editorText string
+
+//export setEditorText
+func setEditorText(editorTextIn string) {
+	editorText = editorTextIn
 }
 
 //export getBufSize

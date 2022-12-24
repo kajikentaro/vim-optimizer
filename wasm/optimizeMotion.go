@@ -1,15 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 )
 
 type OptimizerInput struct {
-	Origin      Position `json:"origin"`
-	Destination Position `json:"destination"`
-	EditorText  string   `json:"EditorText"`
+	Origin      Position
+	Destination Position
+	EditorText  string
 }
 
 type Action struct {
@@ -17,40 +16,28 @@ type Action struct {
 	ActionName string   `json:"actionName"`
 }
 
+func (v Action) MarshalJSON() ([]byte, error) {
+	return MarshalActionAsJSON(&v)
+}
+
 type OptimizerOutput struct {
-	Actions []Action `json:"actions"`
+	Actions []Action
 }
 
 type Position struct {
-	Line      int `json:"line"`
-	Character int `json:"character"`
+	Line      int
+	Character int
 }
 
-func optimizeFromJson(jsonStr string) string {
-	type OptimizerOutputJson struct {
-		OptimizerOutput
-		IsOk         bool   `json:"isOk"`
-		ErrorMessage string `json:"errorMessage"`
-	}
+//go:generate json-ice --type=AwesomeStruct
+type OptimizerOutputJson struct {
+	Actions      []Action `json:"actions"`
+	IsOk         bool     `json:"isOk"`
+	ErrorMessage string   `json:"errorMessage"`
+}
 
-
-	var optIn OptimizerInput
-	// TODO: ココまでしか動かない
-	return "hoge"
-	json.Unmarshal([]byte(jsonStr), &optIn)
-	optOut, err := optimize(optIn)
-
-
-	// 最適化に失敗した場合
-	if err != nil {
-		res := OptimizerOutputJson{OptimizerOutput{}, false, err.Error()}
-		resStr, _ := json.Marshal(res)
-		return string(resStr)
-	}
-
-	res := OptimizerOutputJson{optOut, true, ""}
-	resStr, _ := json.Marshal(res)
-	return string(resStr)
+func (v OptimizerOutputJson) MarshalJSON() ([]byte, error) {
+	return MarshalOptimizerOutputJsonAsJSON(&v)
 }
 
 func optimize(optIn OptimizerInput) (OptimizerOutput, error) {
@@ -80,9 +67,17 @@ func main() {
 	cursorDestination := Position{7, 23}
 
 	optIn := OptimizerInput{cursorOrigin, cursorDestination, editorText}
-	optInStr, _ := json.Marshal(optIn)
-	fmt.Println(string(optInStr))
+	optOut, err := optimize(optIn)
 
-	optOutStr := optimizeFromJson(string(optInStr))
-	fmt.Println(optOutStr)
+	var res OptimizerOutputJson
+
+	if err != nil {
+		res = OptimizerOutputJson{[]Action{}, false, err.Error()}
+	} else {
+		res = OptimizerOutputJson{optOut.Actions, true, ""}
+	}
+
+	optOutStr, _ := res.MarshalJSON()
+
+	fmt.Println(string(optOutStr))
 }

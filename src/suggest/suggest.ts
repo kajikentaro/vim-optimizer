@@ -47,6 +47,20 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
 }
 
 export async function myTest() {
+  const optIn = {
+    origin: {
+      line: 3,
+      character: 2,
+    },
+    destination: {
+      line: 7,
+      character: 23,
+    },
+    EditorText: 'hogehoge',
+  };
+  const optInStr = JSON.stringify(optIn);
+
   const callWasm = require('./callWasm');
-  console.log(await callWasm.callWasm(1, 3));
+  const optOutStr = await callWasm.callWasm(optInStr);
+  console.log(optOutStr);
 }

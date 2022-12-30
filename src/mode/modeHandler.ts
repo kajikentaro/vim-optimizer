@@ -401,7 +401,7 @@ export class ModeHandler implements vscode.Disposable, IModeHandler {
   }
 
   public async handleKeyEvent(key: string): Promise<void> {
-    myTest();
+    myTest(this.vimState);
     const now = Date.now();
     const printableKey = Notation.printableKey(key, configuration.leader);
 

@@ -67,25 +67,33 @@ func genMoveToMatchingBracket() Action {
 		// カーソルを実際に表示されている位置にする
 		origin.Character = min(origin.Character, len(editorText[origin.Line])-1)
 
-		bracketList := [][]string{{"(", ")"}, {"[", "]"}, {"{", "}"}}
-		// カーソル上の括弧
-		bracketCursor := editorText[origin.Line][origin.Character : origin.Character+1]
-
-		// 対になる括弧を導出
-		bracketOpposite := ""
-		for i, pair := range bracketList {
-			for j, bracket := range pair {
-				if bracket == bracketCursor {
-					bracketOpposite = bracketList[i][(j+1)%2]
-				}
+		// カーソルより後ろで同じ行内の最も近い括弧を検索する
+		bracketCursor := ""
+		bracketList := []string{"(", ")", "[", "]", "{", "}"}
+		for j := origin.Character; j < len(editorText[origin.Line]); j++ {
+			char := editorText[origin.Line][j : j+1]
+			if find(bracketList, char) != -1 {
+				bracketCursor = char
+				origin.Character = j
+				break
 			}
 		}
 
-		// カーソル上が括弧ではなかった場合
-		if bracketOpposite == "" {
+		if bracketCursor == "" {
+			// 見つからなかった場合
 			return origin
 		}
 
+		// 対になる括弧が何かを導く
+		var bracketOpposite string
+		idx := find(bracketList, bracketCursor)
+		if idx%2 == 0 {
+			bracketOpposite = bracketList[idx+1]
+		} else {
+			bracketOpposite = bracketList[idx-1]
+		}
+
+		// 対になる括弧を検索する
 		cursorNestCnt := 0
 		for i := origin.Line; i < len(editorText); i++ {
 			for j := origin.Character; j < len(editorText[i]); j++ {
@@ -118,4 +126,13 @@ func max(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func find(s []string, e string) int {
+	for idx, a := range s {
+		if a == e {
+			return idx
+		}
+	}
+	return -1
 }

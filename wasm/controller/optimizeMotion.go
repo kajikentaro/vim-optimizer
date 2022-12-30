@@ -13,6 +13,7 @@ func getAllActions() []Action {
 	actions = append(actions, genMoveDown())
 	actions = append(actions, genMoveRight())
 	actions = append(actions, genMoveLeft())
+	actions = append(actions, genMoveToMatchingBracket())
 	return actions
 }
 

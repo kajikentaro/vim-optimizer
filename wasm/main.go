@@ -21,21 +21,25 @@ func main() {
 			}
 		}
 	}`
-	cursorOrigin := Position{3, 2}
-	cursorDestination := Position{7, 23}
+	cursorOrigin := Position{Line: 3, Character: 0}
+	cursorDestination := Position{Line: 7, Character: 10}
 
-	optIn := OptimizerInput{cursorOrigin, cursorDestination, editorText}
+	optIn := OptimizerInput{Origin: cursorOrigin,
+		Destination: cursorDestination, EditorText: editorText}
 	optOut, err := controller.Optimize(optIn)
 
 	var res OptimizerOutputJson
-
 	if err != nil {
-		res = OptimizerOutputJson{[]Action{}, false, err.Error()}
+		res = OptimizerOutputJson{Actions: []Action{}, IsOk: false, ErrorMessage: err.Error()}
 	} else {
-		res = OptimizerOutputJson{optOut.Actions, true, ""}
+		res = OptimizerOutputJson{Actions: optOut.Actions, IsOk: true, ErrorMessage: ""}
 	}
-
 	optOutStr, _ := res.MarshalJSON()
+	// fmt.Println(string(optOutStr))
+	_ = optOutStr
 
-	fmt.Println(string(optOutStr))
+	// DEBUG:
+	for _, v := range optOut.Actions {
+		fmt.Println(v.ActionKeys)
+	}
 }

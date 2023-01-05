@@ -1,3 +1,4 @@
+import { VimState } from 'src/state/vimState';
 import * as vscode from 'vscode';
 
 export type ActionIdChain = ActionId[];
@@ -44,4 +45,22 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
     return;
   }
   vscode.window.showInformationMessage(result.map((v) => v.pressKeys.join('')).join(' '));
+}
+
+export async function myTest(vimState: VimState) {
+  const optIn = {
+    origin: {
+      line: 0,
+      character: 0,
+    },
+    destination: {
+      line: 1,
+      character: 3,
+    },
+    editorText: vimState.document.getText(),
+  };
+
+  const callWasm = require('./callWasm');
+  const optOutStr = await callWasm.callWasm(optIn);
+  console.log(optOutStr);
 }

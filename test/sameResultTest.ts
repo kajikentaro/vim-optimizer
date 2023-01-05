@@ -177,8 +177,6 @@ export async function executeTest(testObj: SameResultTestObject): Promise<Single
       testObj.start.join('\n').replace('|', '')
     );
   });
-  // TODO 様子見
-  // await editor.document.save();
   editor.selections = [new vscode.Selection(helper.startPosition, helper.startPosition)];
 
   // Generate a brand new ModeHandler for this editor

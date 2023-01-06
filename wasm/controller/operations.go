@@ -93,18 +93,42 @@ func genMoveToMatchingBracket() Action {
 			bracketOpposite = bracketList[idx-1]
 		}
 
-		// 対になる括弧を検索する
-		cursorNestCnt := 0
-		for i := origin.Line; i < len(editorText); i++ {
-			for j := origin.Character; j < len(editorText[i]); j++ {
-				if editorText[i][j:j+1] == bracketOpposite {
-					cursorNestCnt--
+		if idx%2 == 0 {
+			// 後ろ方向へ対になる括弧を検索する
+			cursorNestCnt := 0
+			for i := origin.Line; i < len(editorText); i++ {
+				for j := 0; j < len(editorText[i]); j++ {
+					if i == origin.Line && j == 0 {
+						j = origin.Character
+					}
+					if editorText[i][j:j+1] == bracketOpposite {
+						cursorNestCnt--
+					}
+					if editorText[i][j:j+1] == bracketCursor {
+						cursorNestCnt++
+					}
+					if cursorNestCnt == 0 {
+						return model.Position{Line: i, Character: j}
+					}
 				}
-				if editorText[i][j:j+1] == bracketCursor {
-					cursorNestCnt++
-				}
-				if cursorNestCnt == 0 {
-					return model.Position{Line: i, Character: j}
+			}
+		} else {
+			// 前方向へ対になる括弧を検索する
+			cursorNestCnt := 0
+			for i := origin.Line; i >= 0; i-- {
+				for j := len(editorText[i]) - 1; j >= 0; j-- {
+					if i == origin.Line && j == len(editorText[i])-1 {
+						j = origin.Character
+					}
+					if editorText[i][j:j+1] == bracketOpposite {
+						cursorNestCnt--
+					}
+					if editorText[i][j:j+1] == bracketCursor {
+						cursorNestCnt++
+					}
+					if cursorNestCnt == 0 {
+						return model.Position{Line: i, Character: j}
+					}
 				}
 			}
 		}

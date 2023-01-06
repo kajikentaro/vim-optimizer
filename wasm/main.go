@@ -21,8 +21,8 @@ func main() {
 			}
 		}
 	}`
-	cursorOrigin := Position{Line: 6, Character: 4}
-	cursorDestination := Position{Line: 6, Character: 22}
+	cursorOrigin := Position{Line: 10, Character: 0}
+	cursorDestination := Position{Line: 3, Character: 10}
 
 	optIn := OptimizerInput{Origin: cursorOrigin,
 		Destination: cursorDestination, EditorText: editorText}

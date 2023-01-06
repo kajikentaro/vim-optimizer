@@ -1,5 +1,6 @@
-import { VimState } from 'src/state/vimState';
 import * as vscode from 'vscode';
+import { Mode } from '../mode/mode';
+import { VimState } from '../state/vimState';
 
 export type ActionIdChain = ActionId[];
 
@@ -31,35 +32,54 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
   const targetKey = JSON.stringify(targetObj);
   const result = suggestMap.get(targetKey);
   if (typeof result === 'undefined') {
-    console.error('not found in suggest map');
+    // console.error('not found in suggest map');
     return;
   }
   if (targetKey === JSON.stringify(result)) {
-    console.error('target is currently optimal');
+    // console.error('target is currently optimal');
     return;
   }
   const targetKeyLength = targetObj.reduce((sum, v) => v.pressKeys.length + sum, 0);
   const resultKeyLength = result.reduce((sum, v) => v.pressKeys.length + sum, 0);
   if (targetKeyLength === resultKeyLength) {
-    console.error('target key length is as same as optimal');
+    // console.error('target key length is as same as optimal');
     return;
   }
   vscode.window.showInformationMessage(result.map((v) => v.pressKeys.join('')).join(' '));
 }
 
-export async function myTest(vimState: VimState) {
+let cursorTracking: vscode.Position | undefined;
+export async function mySuggestOptimalMovement(vimState: VimState) {
+  // 初期状態をセットする
+  if (typeof cursorTracking === 'undefined' && vimState.currentMode === Mode.Normal) {
+    cursorTracking = vimState.cursors[0].start;
+    return;
+  }
+
+  // ノーマルモードから抜けた場合
+  if (typeof cursorTracking !== 'undefined' && vimState.currentMode !== Mode.Normal) {
+    const cursorNow = vimState.cursors[0].start;
+    optimizeMovement(vimState.document.getText(), cursorTracking, cursorNow);
+
+    cursorTracking = undefined;
+  }
+}
+
+async function optimizeMovement(text: string, before: vscode.Position, after: vscode.Position) {
   const optIn = {
     origin: {
-      line: 0,
-      character: 0,
+      line: before.line,
+      character: before.character,
     },
     destination: {
-      line: 1,
-      character: 3,
+      line: after.line,
+      character: after.character,
     },
-    editorText: vimState.document.getText(),
+    editorText: text,
   };
 
+  console.log(JSON.stringify(optIn.origin));
+  console.log(JSON.stringify(optIn.destination));
   const callWasm = require('./callWasm');
   const optOutStr = await callWasm.callWasm(optIn);
   console.log(optOutStr);

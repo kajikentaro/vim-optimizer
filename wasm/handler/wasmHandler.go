@@ -20,7 +20,7 @@ func wasmHandler() uint32 {
 	if err != nil {
 		res = OptimizerOutputJson{Actions: []Action{}, IsOk: false, ErrorMessage: err.Error()}
 	} else {
-		res = OptimizerOutputJson{Actions: optOut.Actions, IsOk: true, ErrorMessage: "abcde"}
+		res = OptimizerOutputJson{Actions: optOut.Actions, IsOk: true, ErrorMessage: ""}
 	}
 
 	optOutStr, _ := res.MarshalJSON()
@@ -34,7 +34,7 @@ var destinationPosition Position
 
 //export setDestinationPosition
 func setDestinationPosition(line, character int) {
-	originPosition = Position{Line: line, Character: character}
+	destinationPosition = Position{Line: line, Character: character}
 }
 
 var originPosition Position

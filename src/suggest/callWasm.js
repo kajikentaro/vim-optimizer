@@ -2,8 +2,6 @@ const path = require('path');
 require('./wasm_exec_tiny');
 const fs = require('fs');
 
-async function prepareWasm() {}
-
 export async function callWasm(optIn) {
   const go = new Go();
 

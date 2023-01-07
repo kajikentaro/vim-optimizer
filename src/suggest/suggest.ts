@@ -45,23 +45,30 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
     // console.error('target key length is as same as optimal');
     return;
   }
-  vscode.window.showInformationMessage(result.map((v) => v.pressKeys.join('')).join(' '));
+  vscode.window.showInformationMessage(
+    'Action may be optimized: ' + result.map((v) => v.pressKeys.join('')).join(' ')
+  );
 }
 
 let cursorTracking: vscode.Position | undefined;
+let executeMovementCnt = 0;
 export async function mySuggestOptimalMovement(vimState: VimState) {
+  executeMovementCnt++;
+
   // 初期状態をセットする
   if (typeof cursorTracking === 'undefined' && vimState.currentMode === Mode.Normal) {
     cursorTracking = vimState.cursors[0].start;
+    executeMovementCnt = 1;
     return;
   }
 
   // ノーマルモードから抜けた場合
   if (typeof cursorTracking !== 'undefined' && vimState.currentMode !== Mode.Normal) {
     const cursorNow = vimState.cursors[0].start;
-    optimizeMovement(vimState.document.getText(), cursorTracking, cursorNow);
+    await optimizeMovement(vimState.document.getText(), cursorTracking, cursorNow);
 
     cursorTracking = undefined;
+    executeMovementCnt = 0;
   }
 }
 
@@ -78,9 +85,29 @@ async function optimizeMovement(text: string, before: vscode.Position, after: vs
     editorText: text,
   };
 
-  console.log(JSON.stringify(optIn.origin));
-  console.log(JSON.stringify(optIn.destination));
+  interface OptOut {
+    actions: Array<{
+      actionKeys: string[];
+      actionName: string;
+    }>;
+    isOk: boolean;
+    errorMessage: string;
+  }
+
   const callWasm = require('./callWasm');
   const optOutStr = await callWasm.callWasm(optIn);
-  console.log(optOutStr);
+  const optOut = JSON.parse(optOutStr) as OptOut;
+
+  if (!optOut.isOk) {
+    console.error(optOut.errorMessage);
+    return;
+  }
+
+  if (executeMovementCnt <= optOut.actions.length) {
+    return;
+  }
+
+  vscode.window.showInformationMessage(
+    'Movements may be optimized: ' + optOut.actions.map((v) => v.actionKeys.join('')).join(' ')
+  );
 }

@@ -69,17 +69,17 @@ export default async function preprocess2() {
     let minKeyLength = Infinity;
     let minIdx = -1;
     for (let i = 0; i < sameActionsWithA.length; i++) {
-      const idChain = sameActionsWithA[i];
-      const keyLength = Math.max(
-        idChain.reduce((sum, v) => sum + v.pressKeys.length, 0),
-        idChain.length
-      );
+      const keyLength = getKeyLengthSum(sameActionsWithA[i]);
       if (keyLength < minKeyLength) {
         minKeyLength = keyLength;
         minIdx = i;
       }
     }
     const mapValue = sameActionsWithA[minIdx];
+
+    // Aよりキーの入力回数が多かったらスキップ
+    const keyLengthA = getKeyLengthSum(a.actionIdChain);
+    if (keyLengthA <= minKeyLength) continue;
 
     // 結果をmapに保存する
     const mapKey: ActionIdChain = actionRes[ai].actionIdChain;
@@ -124,4 +124,12 @@ async function readActionRes(filename: string) {
     });
   });
   return executeResult;
+}
+
+function getKeyLengthSum(actionIdChain: ActionIdChain) {
+  const keyLength = Math.max(
+    actionIdChain.reduce((sum, v) => sum + v.pressKeys.length, 0),
+    actionIdChain.length
+  );
+  return keyLength;
 }

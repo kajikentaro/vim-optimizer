@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
-import { ActionIdChain } from '../src/suggest/suggest';
+import { ActionIdChain, ActionIdKeyChain } from '../src/suggest/suggest';
 import {
   AllTestResult,
   DOUBLE_ACTION_RES_FILE,
@@ -82,14 +82,16 @@ export default async function preprocess2() {
     if (keyLengthA <= minKeyLength) continue;
 
     // 結果をmapに保存する
-    const mapKey: ActionIdChain = actionRes[ai].actionIdChain;
+    const mapKey: ActionIdKeyChain = actionRes[ai].actionIdChain.map((v) => {
+      return { pressKeys: v.pressKeys };
+    });
     recommendAction.set(JSON.stringify(mapKey), sameActionsWithA[minIdx]);
 
     // デバック用に保存する
     tmp.push(
-      mapKey.map((v) => v.pressKeys.join('').replace('\n', '\\n')).join(' ') +
+      actionRes[ai].actionIdChain.map((v) => v.pressKeys.join('').replace('\n', '\\n')).join(' ') +
         ' ### ' +
-        mapKey.map((v) => v.actionName).join(' ')
+        actionRes[ai].actionIdChain.map((v) => v.actionName).join(' ')
     );
     tmp.push(
       mapValue.map((v) => v.pressKeys.join('').replace('\n', '\\n')).join(' ') +

@@ -3,6 +3,11 @@ import { Mode } from '../mode/mode';
 import { VimState } from '../state/vimState';
 
 export type ActionIdChain = ActionId[];
+export type ActionIdKeyChain = ActionIdKeys[];
+
+export interface ActionIdKeys {
+  pressKeys: string[];
+}
 
 export interface ActionId {
   pressKeys: string[];
@@ -28,7 +33,9 @@ export async function mySuggestOptimalAction(actionName: string, actionKey: stri
   const suggestMap = getSuggestMap();
   history.push({ pressKeys: actionKey, actionName });
 
-  const targetObj: ActionIdChain = history.slice(-2);
+  const targetObj: ActionIdKeyChain = history.slice(-2).map((v) => {
+    return { pressKeys: v.pressKeys };
+  });
   const targetKey = JSON.stringify(targetObj);
   const result = suggestMap.get(targetKey);
   if (typeof result === 'undefined') {

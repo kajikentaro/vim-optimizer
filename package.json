@@ -3,7 +3,7 @@
   "displayName": "VimOptimizer",
   "description": "Optimize your Vim commands.",
   "icon": "images/icon.png",
-  "version": "1.23.1",
+  "version": "1.0.0",
   "publisher": "kajikentaro",
   "galleryBanner": {
     "color": "#e3f4ff",

@@ -1,3 +1,3 @@
 build:
-	tinygo build -o wasmbin -target wasm optimizeMotion.go
+	tinygo build -o ../out/wasmbin -target wasm .
 

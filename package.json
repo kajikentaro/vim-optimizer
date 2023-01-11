@@ -1,10 +1,10 @@
 {
-  "name": "vim",
-  "displayName": "Vim",
-  "description": "Vim emulation for Visual Studio Code",
+  "name": "vim-optimizer",
+  "displayName": "VimOptimizer",
+  "description": "Optimize your Vim commands.",
   "icon": "images/icon.png",
   "version": "1.23.1",
-  "publisher": "vscodevim",
+  "publisher": "kajikentaro",
   "galleryBanner": {
     "color": "#e3f4ff",
     "theme": "light"
@@ -40,7 +40,6 @@
   ],
   "qna": "https://vscodevim.herokuapp.com/",
   "main": "./out/extension",
-  "browser": "./out/extensionWeb",
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true
